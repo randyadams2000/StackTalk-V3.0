@@ -73,12 +73,12 @@ export async function POST(request: NextRequest) {
       }
 
       const bucket = process.env.S3_BUCKET_NAME
-      const region = process.env.PUBLIC_AWS_REGION || process.env.AWS_REGION || process.env.S3_REGION
-      const accessKeyId = process.env.PUBLIC_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID
-      const secretAccessKey = process.env.PUBLIC_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY
+      const region = process.env.PUBLIC_AWS_REGION
+      const accessKeyId = process.env.PUBLIC_AWS_ACCESS_KEY_ID
+      const secretAccessKey = process.env.PUBLIC_AWS_SECRET_ACCESS_KEY
       if (!bucket || !region) {
         return NextResponse.json(
-          { success: false, error: "S3 is not configured. Missing S3_BUCKET_NAME or region" },
+          { success: false, error: "S3 is not configured. Missing S3_BUCKET_NAME or PUBLIC_AWS_REGION" },
           { status: 500 },
         )
       }

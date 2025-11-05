@@ -13,12 +13,12 @@ export interface FirebaseConfig {
 
 // Real Firebase configuration - replace with your actual config
 const firebaseConfig: FirebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "talk2me-onboarding.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "talk2me-onboarding",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "talk2me-onboarding.appspot.com",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "123456789012",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:123456789012:web:abcdef123456789012345678",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
 // Global variables to store Firebase instances
@@ -263,11 +263,28 @@ export const signInWithGoogle = async (): Promise<User | null> => {
     provider.addScope("email")
     provider.addScope("profile")
 
+    // Add debugging info
+    console.log("🔍 Google OAuth Debug Info:", {
+      currentURL: window.location.href,
+      origin: window.location.origin,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    })
+
     const result = await signInWithPopup(auth, provider)
     console.log("Google sign in successful:", result.user.email)
     return result.user
   } catch (error) {
     console.error("Google sign in error:", error)
+    // Log additional error details for redirect URI issues
+    if (error instanceof Error && error.message.includes("redirect_uri_mismatch")) {
+      console.error("🚨 Redirect URI Mismatch Details:", {
+        error: error.message,
+        currentDomain: window.location.origin,
+        expectedRedirectURI: `${window.location.origin}/__/auth/handler`,
+        firebaseAuthDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+      })
+    }
     throw error
   }
 }

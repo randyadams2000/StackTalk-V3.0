@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
     const { filename, contentType } = await request.json()
 
     const bucket = process.env.S3_BUCKET_NAME
-    const region = process.env.PUBLIC_AWS_REGION || process.env.AWS_REGION || process.env.S3_REGION
-    const accessKeyId = process.env.PUBLIC_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID
-    const secretAccessKey = process.env.PUBLIC_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY
+    const region = process.env.PUBLIC_AWS_REGION
+    const accessKeyId = process.env.PUBLIC_AWS_ACCESS_KEY_ID
+    const secretAccessKey = process.env.PUBLIC_AWS_SECRET_ACCESS_KEY
 
     const hasCreds = Boolean(accessKeyId && secretAccessKey)
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     if (!region) {
       return NextResponse.json(
-        { success: false, error: "Missing AWS region environment variable (PUBLIC_AWS_REGION or AWS_REGION)" },
+        { success: false, error: "Missing PUBLIC_AWS_REGION environment variable" },
         { status: 500 },
       )
     }
