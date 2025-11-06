@@ -13,12 +13,12 @@ export interface FirebaseConfig {
 
 // Real Firebase configuration - replace with your actual config
 const firebaseConfig: FirebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "talk2me-onboarding.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "talk2me-onboarding",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "talk2me-onboarding.appspot.com",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "123456789012",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:123456789012:web:abcdef123456789012345678",
 }
 
 // Global variables to store Firebase instances
@@ -258,6 +258,17 @@ export const signInWithGoogle = async (): Promise<User | null> => {
       throw new Error("Firebase Auth not available")
     }
 
+    // Debug Firebase configuration
+    console.log("🔧 Firebase Config Check:", {
+      hasApiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      hasAuthDomain: !!process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      hasProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      hasAppId: !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+    })
+
     const { signInWithPopup, GoogleAuthProvider } = await import("firebase/auth")
     const provider = new GoogleAuthProvider()
     provider.addScope("email")
@@ -267,15 +278,39 @@ export const signInWithGoogle = async (): Promise<User | null> => {
     console.log("🔍 Google OAuth Debug Info:", {
       currentURL: window.location.href,
       origin: window.location.origin,
+      hostname: window.location.hostname,
       authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      isCustomDomain: window.location.hostname === 'stacktalk.app',
+      expectedRedirectURI: `${window.location.origin}/__/auth/handler`,
+      firebaseConfigComplete: !!(process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 
+                                 process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN && 
+                                 process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && 
+                                 process.env.NEXT_PUBLIC_FIREBASE_APP_ID)
     })
 
+    console.log("🚀 Attempting Google sign-in...")
     const result = await signInWithPopup(auth, provider)
     console.log("Google sign in successful:", result.user.email)
     return result.user
   } catch (error) {
     console.error("Google sign in error:", error)
+    
+    // Enhanced error logging
+    console.error("🚨 Detailed Error Info:", {
+      errorCode: (error as any)?.code,
+      errorMessage: (error as any)?.message,
+      currentDomain: window.location.origin,
+      firebaseAuthDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      allEnvVars: {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? "SET" : "MISSING",
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "MISSING",
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "MISSING",
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ? "SET" : "MISSING"
+      }
+    })
+    
     // Log additional error details for redirect URI issues
     if (error instanceof Error && error.message.includes("redirect_uri_mismatch")) {
       console.error("🚨 Redirect URI Mismatch Details:", {
@@ -283,6 +318,19 @@ export const signInWithGoogle = async (): Promise<User | null> => {
         currentDomain: window.location.origin,
         expectedRedirectURI: `${window.location.origin}/__/auth/handler`,
         firebaseAuthDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+      })
+    }
+    // Log details for auth domain configuration errors
+    if (error instanceof Error && error.message.includes("auth-domain-config-required")) {
+      console.error("🚨 Auth Domain Config Required:", {
+        error: error.message,
+        currentDomain: window.location.origin,
+        firebaseAuthDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        requiredActions: [
+          "1. Add this domain to Firebase Console → Authentication → Settings → Authorized domains",
+          "2. Add OAuth redirect URIs to Google Cloud Console",
+          "3. Verify all environment variables are set in Amplify"
+        ]
       })
     }
     throw error
