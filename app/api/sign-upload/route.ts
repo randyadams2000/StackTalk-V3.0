@@ -10,21 +10,35 @@ export async function POST(request: NextRequest) {
     const { filename, contentType } = await request.json()
 
     const bucket = process.env.S3_BUCKET_NAME
-    const region = process.env.PUBLIC_AWS_REGION
-    const accessKeyId = process.env.PUBLIC_AWS_ACCESS_KEY_ID
-    const secretAccessKey = process.env.PUBLIC_AWS_SECRET_ACCESS_KEY
+    const region = process.env.PUBLIC_AWS_REGION || process.env.AWS_REGION
+    const accessKeyId = process.env.PUBLIC_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID
+    const secretAccessKey = process.env.PUBLIC_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY
 
     const hasCreds = Boolean(accessKeyId && secretAccessKey)
 
     // Debug logging
     console.log("🔍 S3 Config Debug:", {
       bucket: bucket ? "SET" : "MISSING",
-      region: region ? "SET" : "MISSING",
+      region: region ? "SET" : "MISSING", 
       accessKeyId: accessKeyId ? "SET" : "MISSING",
       secretAccessKey: secretAccessKey ? "SET" : "MISSING",
       hasCreds,
       filename,
-      contentType
+      contentType,
+      // Show actual values to debug (remove in production)
+      actualValues: {
+        bucket,
+        region,
+        accessKeyId: accessKeyId ? `${accessKeyId.substring(0, 4)}...` : "MISSING",
+        secretAccessKey: secretAccessKey ? `${secretAccessKey.substring(0, 4)}...` : "MISSING"
+      },
+      // Show all environment variables to see what's actually loaded
+      allEnvVars: {
+        S3_BUCKET_NAME: process.env.S3_BUCKET_NAME ? "SET" : "MISSING",
+        PUBLIC_AWS_REGION: process.env.PUBLIC_AWS_REGION ? "SET" : "MISSING",
+        PUBLIC_AWS_ACCESS_KEY_ID: process.env.PUBLIC_AWS_ACCESS_KEY_ID ? "SET" : "MISSING",
+        PUBLIC_AWS_SECRET_ACCESS_KEY: process.env.PUBLIC_AWS_SECRET_ACCESS_KEY ? "SET" : "MISSING"
+      }
     })
 
     if (!bucket) {
