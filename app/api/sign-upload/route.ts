@@ -16,7 +16,19 @@ export async function POST(request: NextRequest) {
 
     const hasCreds = Boolean(accessKeyId && secretAccessKey)
 
+    // Debug logging
+    console.log("🔍 S3 Config Debug:", {
+      bucket: bucket ? "SET" : "MISSING",
+      region: region ? "SET" : "MISSING",
+      accessKeyId: accessKeyId ? "SET" : "MISSING",
+      secretAccessKey: secretAccessKey ? "SET" : "MISSING",
+      hasCreds,
+      filename,
+      contentType
+    })
+
     if (!bucket) {
+      console.error("❌ Missing S3_BUCKET_NAME")
       return NextResponse.json(
         { success: false, error: "Missing S3_BUCKET_NAME environment variable" },
         { status: 500 },
@@ -24,8 +36,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (!region) {
+      console.error("❌ Missing PUBLIC_AWS_REGION")
       return NextResponse.json(
         { success: false, error: "Missing PUBLIC_AWS_REGION environment variable" },
+        { status: 500 },
+      )
+    }
+
+    if (!hasCreds) {
+      console.error("❌ Missing AWS credentials")
+      return NextResponse.json(
+        { success: false, error: "Missing AWS credentials (PUBLIC_AWS_ACCESS_KEY_ID or PUBLIC_AWS_SECRET_ACCESS_KEY)" },
         { status: 500 },
       )
     }
@@ -38,6 +59,8 @@ export async function POST(request: NextRequest) {
     const safeName = (filename || "upload.dat").replace(/[^a-zA-Z0-9_.-]/g, "_")
     const key = `${randomUUID()}-${safeName}` // bucket root
 
+    console.log("📁 Creating S3 command:", { bucket, key, safeName })
+
     // Build command with the content type we expect the client to use on PUT
     const expectedContentType = contentType || "application/octet-stream"
     const command = new PutObjectCommand({
@@ -46,9 +69,11 @@ export async function POST(request: NextRequest) {
       ContentType: expectedContentType,
     })
 
+    console.log("🔗 Generating presigned URL...")
     const started = Date.now()
     const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 600 })
     const elapsedMs = Date.now() - started
+    console.log("✅ Presigned URL generated successfully:", { elapsedMs })
 
     // Return extra diagnostics to help debug 403s on client PUT
     return NextResponse.json({
