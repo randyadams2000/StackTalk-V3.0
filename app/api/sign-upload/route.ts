@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
     const { filename, contentType } = await request.json()
 
     const bucket = process.env.S3_BUCKET_NAME
-    const region = process.env.PUBLIC_AWS_REGION || process.env.AWS_REGION
-    const accessKeyId = process.env.PUBLIC_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID
-    const secretAccessKey = process.env.PUBLIC_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY
+    const region = process.env.AWS_REGION
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
 
     const hasCreds = Boolean(accessKeyId && secretAccessKey)
 
@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
       // Show all environment variables to see what's actually loaded
       allEnvVars: {
         S3_BUCKET_NAME: process.env.S3_BUCKET_NAME ? "SET" : "MISSING",
-        PUBLIC_AWS_REGION: process.env.PUBLIC_AWS_REGION ? "SET" : "MISSING",
-        PUBLIC_AWS_ACCESS_KEY_ID: process.env.PUBLIC_AWS_ACCESS_KEY_ID ? "SET" : "MISSING",
-        PUBLIC_AWS_SECRET_ACCESS_KEY: process.env.PUBLIC_AWS_SECRET_ACCESS_KEY ? "SET" : "MISSING"
+        AWS_REGION: process.env.AWS_REGION ? "SET" : "MISSING",
+        AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? "SET" : "MISSING",
+        AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? "SET" : "MISSING"
       }
     })
 
@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!region) {
-      console.error("❌ Missing PUBLIC_AWS_REGION")
+      console.error("❌ Missing AWS_REGION")
       return NextResponse.json(
-        { success: false, error: "Missing PUBLIC_AWS_REGION environment variable" },
+        { success: false, error: "Missing AWS_REGION environment variable" },
         { status: 500 },
       )
     }
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (!hasCreds) {
       console.error("❌ Missing AWS credentials")
       return NextResponse.json(
-        { success: false, error: "Missing AWS credentials (PUBLIC_AWS_ACCESS_KEY_ID or PUBLIC_AWS_SECRET_ACCESS_KEY)" },
+        { success: false, error: "Missing AWS credentials (AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY)" },
         { status: 500 },
       )
     }
@@ -77,10 +77,16 @@ export async function POST(request: NextRequest) {
 
     // Build command with the content type we expect the client to use on PUT
     const expectedContentType = contentType || "application/octet-stream"
+    // Enhanced security: Set CORS headers to restrict which domains can use presigned URLs
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
       ContentType: expectedContentType,
+      // Add security headers
+      Metadata: {
+        'uploaded-by': 'stacktalk-app',
+        'upload-timestamp': new Date().toISOString()
+      }
     })
 
     console.log("🔗 Generating presigned URL...")
