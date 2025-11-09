@@ -71,16 +71,20 @@ export default function Step2() {
   // Helper to fetch an image URL and convert to data URL for reliable preview/storage
   const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
     try {
-      const res = await fetch(url)
-      if (!res.ok) return null
-      const blob = await res.blob()
-      return await new Promise((resolve) => {
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
-        reader.readAsDataURL(blob)
-      })
+      const encodedUrl = encodeURIComponent(url)
+      const res = await fetch(`/api/proxy-image?url=${encodedUrl}`)
+      if (!res.ok) {
+        console.warn("⚠️ proxy-image returned", res.status)
+        return null
+      }
+      const data = await res.json()
+      if (!data?.success || !data?.dataUrl) {
+        console.warn("⚠️ proxy-image payload missing dataUrl")
+        return null
+      }
+      return data.dataUrl as string
     } catch (e) {
-      console.warn("⚠️ Failed to fetch profile image URL, falling back to placeholder", e)
+      console.warn("⚠️ Failed to fetch profile image URL via proxy, falling back to placeholder", e)
       return null
     }
   }
