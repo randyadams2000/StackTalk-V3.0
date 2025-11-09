@@ -13,9 +13,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if ElevenLabs API key is available
-    const elevenLabsApiKey = process.env.ELEVEN_API_KEY
+    const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVEN_API_KEY
     if (!elevenLabsApiKey) {
-      console.warn("⚠️ ELEVEN_API_KEY missing, returning mock deletion")
+      console.warn("⚠️ NEXT_PUBLIC_ELEVEN_API_KEY missing, returning mock deletion")
       return NextResponse.json({
         success: true,
         message: "Voice clone deleted successfully (mock mode)",
@@ -72,13 +72,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: "s3Key is required" }, { status: 400 })
       }
 
-      const bucket = process.env.S3_BUCKET_NAME
-      const region = process.env.AWS_REGION
-      const accessKeyId = process.env.AWS_ACCESS_KEY_ID
-      const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
+      const bucket = process.env.NEXT_PUBLIC_S3_BUCKET_NAME
+      const region = process.env.NEXT_PUBLIC_AWS_REGION
+      const accessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID
+      const secretAccessKey = process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY
       if (!bucket || !region) {
         return NextResponse.json(
-          { success: false, error: "S3 is not configured. Missing S3_BUCKET_NAME or AWS_REGION" },
+          { success: false, error: "S3 is not configured. Missing NEXT_PUBLIC_S3_BUCKET_NAME or NEXT_PUBLIC_AWS_REGION" },
           { status: 500 },
         )
       }
@@ -160,9 +160,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if ElevenLabs API key is available
-    const elevenLabsApiKey = process.env.ELEVEN_API_KEY
+    const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVEN_API_KEY
     if (!elevenLabsApiKey) {
-      console.warn("⚠️ ELEVEN_API_KEY missing, returning mock")
+      console.warn("⚠️ NEXT_PUBLIC_ELEVEN_API_KEY missing, returning mock")
       return NextResponse.json({
         success: true,
         voice_id: `voice_${Date.now()}`,

@@ -9,10 +9,10 @@ export async function POST(request: NextRequest) {
   try {
     const { filename, contentType } = await request.json()
 
-  const bucket = process.env.S3_BUCKET_NAME
-  const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-east-1"
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
+  const bucket = process.env.NEXT_PUBLIC_S3_BUCKET_NAME
+  const region = process.env.NEXT_PUBLIC_AWS_REGION || "us-east-1"
+  const accessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID
+  const secretAccessKey = process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY
 
   const hasExplicitCreds = Boolean(accessKeyId && secretAccessKey)
 
@@ -35,18 +35,17 @@ export async function POST(request: NextRequest) {
       },
       // Show all environment variables to see what's actually loaded
       allEnvVars: {
-        S3_BUCKET_NAME: process.env.S3_BUCKET_NAME ? "SET" : "MISSING",
-        AWS_REGION: process.env.AWS_REGION ? "SET" : "MISSING",
-        AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? "SET" : "MISSING",
-        AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION ? "SET" : "MISSING",
-        AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? "SET" : "MISSING"
+        NEXT_PUBLIC_S3_BUCKET_NAME: process.env.NEXT_PUBLIC_S3_BUCKET_NAME ? "SET" : "MISSING",
+        NEXT_PUBLIC_AWS_REGION: process.env.NEXT_PUBLIC_AWS_REGION ? "SET" : "MISSING",
+        NEXT_PUBLIC_AWS_ACCESS_KEY_ID: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID ? "SET" : "MISSING",
+        NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY ? "SET" : "MISSING"
       }
     })
 
     if (!bucket) {
-      console.error("❌ Missing S3_BUCKET_NAME")
+      console.error("❌ Missing NEXT_PUBLIC_S3_BUCKET_NAME")
       return NextResponse.json(
-        { success: false, error: "Missing S3_BUCKET_NAME environment variable" },
+        { success: false, error: "Missing NEXT_PUBLIC_S3_BUCKET_NAME environment variable" },
         { status: 500 },
       )
     }
@@ -54,7 +53,7 @@ export async function POST(request: NextRequest) {
     if (!region) {
       console.error("❌ Missing AWS region configuration")
       return NextResponse.json(
-        { success: false, error: "Missing AWS region configuration (AWS_REGION or AWS_DEFAULT_REGION)" },
+        { success: false, error: "Missing AWS region configuration (NEXT_PUBLIC_AWS_REGION)" },
         { status: 500 },
       )
     }
