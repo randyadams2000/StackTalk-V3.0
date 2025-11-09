@@ -171,9 +171,6 @@ export default function LandingPage() {
                   <Button variant="outline" className="bg-transparent" onClick={handleLogout}>
                     Sign Out
                   </Button>
-                  <Link href="/dashboard">
-                    <Button className="bg-purple-600 hover:bg-purple-700 text-white px-6">Dashboard</Button>
-                  </Link>
                 </div>
               ) : (
                 <>

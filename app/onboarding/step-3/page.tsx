@@ -939,7 +939,7 @@ export default function Step3() {
             <CardHeader>
               <CardTitle className="text-2xl text-gray-400 text-center">Personalize Your AI Twin</CardTitle>
               <p className="text-gray-400 text-center">
-                Record your voice or upload a file and customize your twin's personality
+                Record your voice, upload a voice recording to make your twin speak in your voice.
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
