@@ -9,12 +9,12 @@ export async function POST(request: NextRequest) {
   try {
     const { filename, contentType } = await request.json()
 
-    const bucket = process.env.S3_BUCKET_NAME
-    const region = process.env.AWS_REGION
-    const accessKeyId = process.env.AWS_ACCESS_KEY_ID
-    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
+  const bucket = process.env.S3_BUCKET_NAME
+  const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-east-1"
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
 
-    const hasCreds = Boolean(accessKeyId && secretAccessKey)
+  const hasExplicitCreds = Boolean(accessKeyId && secretAccessKey)
 
     // Debug logging
     console.log("🔍 S3 Config Debug:", {
@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
       region: region ? "SET" : "MISSING", 
       accessKeyId: accessKeyId ? "SET" : "MISSING",
       secretAccessKey: secretAccessKey ? "SET" : "MISSING",
-      hasCreds,
+  hasExplicitCreds,
+  usingDefaultProvider: hasExplicitCreds ? false : true,
       filename,
       contentType,
       // Show actual values to debug (remove in production)
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
         S3_BUCKET_NAME: process.env.S3_BUCKET_NAME ? "SET" : "MISSING",
         AWS_REGION: process.env.AWS_REGION ? "SET" : "MISSING",
         AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? "SET" : "MISSING",
+        AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION ? "SET" : "MISSING",
         AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? "SET" : "MISSING"
       }
     })
@@ -50,24 +52,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (!region) {
-      console.error("❌ Missing AWS_REGION")
+      console.error("❌ Missing AWS region configuration")
       return NextResponse.json(
-        { success: false, error: "Missing AWS_REGION environment variable" },
-        { status: 500 },
-      )
-    }
-
-    if (!hasCreds) {
-      console.error("❌ Missing AWS credentials")
-      return NextResponse.json(
-        { success: false, error: "Missing AWS credentials (AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY)" },
+        { success: false, error: "Missing AWS region configuration (AWS_REGION or AWS_DEFAULT_REGION)" },
         { status: 500 },
       )
     }
 
     const s3 = new S3Client({
       region,
-      credentials: hasCreds ? { accessKeyId: accessKeyId!, secretAccessKey: secretAccessKey! } : undefined,
+      // When explicit credentials are not provided we fall back to the default credential
+      // provider chain (IAM role, web identity, etc.) so Amplify hosted environments work
+      // without storing long-lived keys.
+      credentials: hasExplicitCreds ? { accessKeyId: accessKeyId!, secretAccessKey: secretAccessKey! } : undefined,
     })
 
     const safeName = (filename || "upload.dat").replace(/[^a-zA-Z0-9_.-]/g, "_")
@@ -103,7 +100,7 @@ export async function POST(request: NextRequest) {
       debug: {
         bucket,
         region,
-        hasCreds,
+        credentialSource: hasExplicitCreds ? "env" : "default-provider",
         expectedContentType,
         presignTookMs: elapsedMs,
       },

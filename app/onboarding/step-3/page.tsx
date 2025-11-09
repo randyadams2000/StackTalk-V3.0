@@ -302,6 +302,7 @@ export default function Step3() {
     try {
       let usedPresigned = false
       let response: Response | null = null
+      let presignError: string | null = null
 
       try {
         const signRes = await fetch("/api/sign-upload", {
@@ -362,7 +363,12 @@ export default function Step3() {
         })
         usedPresigned = true
       } catch (e) {
-        console.warn("⚠️ Presigned upload path failed, falling back to direct upload:", e)
+        presignError = e instanceof Error ? e.message : String(e)
+        console.warn("⚠️ Presigned upload path failed, falling back to direct upload:", presignError)
+        // Surface to the UI so production users know why large uploads might fail
+        setVoiceCloneError(
+          `Secure upload temporarily unavailable (${presignError}). Falling back to direct upload (max 5MB).`
+        )
       }
 
       if (!response) {
@@ -371,6 +377,10 @@ export default function Step3() {
         formData.append("voiceName", `${userName || creatorName} AI Twin`)
         formData.append("voiceDescription", voiceDescription)
         response = await fetch("/api/voice-clone", { method: "POST", body: formData })
+        if (!presignError) {
+          // Ensure any stale messaging is cleared if we didn't log a presign failure
+          setVoiceCloneError("")
+        }
       }
 
       if (!response.ok) {
@@ -420,6 +430,7 @@ export default function Step3() {
       if (result.success) {
         const voiceId = result.voiceId || result.voice_id
         if (voiceId) {
+          setVoiceCloneError("")
           setVoiceCloneId(voiceId)
           setVoiceCloneSuccess(true)
           if (typeof window !== "undefined") {
