@@ -817,17 +817,17 @@ export default function Step3() {
         {
           service_provider_id: 43,
           service_type: "LLM",
-          is_default: false
+          is_default: true
         },
         {
           service_provider_id: 21,
           service_type: "TTS",
-          is_default: false
+          is_default: true
         },
         {
           service_provider_id: 15,
           service_type: "STT",
-          is_default: false
+          is_default: true
         }
       ]
 
@@ -975,6 +975,26 @@ export default function Step3() {
       else if (twinResult.id && !isNaN(Number(twinResult.id))) creatorId = twinResult.id
 
       if (creatorId) {
+        // Set ownership_verified to false
+        try {
+          console.log("🚀 API Call: Setting ownership_verified to false for creator", creatorId)
+          const verificationResponse = await fetch(`https://api.talk2me.ai/creators/${creatorId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({ ownership_verified: false }),
+          })
+
+          if (!verificationResponse.ok) {
+            throw new Error(`Failed to set ownership_verified: ${verificationResponse.statusText}`)
+          }
+          console.log("✅ Successfully set ownership_verified to false")
+        } catch (verificationError) {
+          console.error("⚠️ Setting ownership_verified failed:", verificationError)
+        }
+
         // Set service providers (LLM, TTS, STT)
         try {
           await setServiceProviders(authToken, Number(creatorId))

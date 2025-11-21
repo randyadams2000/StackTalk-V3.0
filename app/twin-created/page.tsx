@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, MessageSquare, ExternalLink, Copy, Globe, Shield, AlertCircle } from "lucide-react"
+import { useAuth } from "@/components/auth/auth-provider"
 
 interface TwinData {
   author: string
@@ -20,6 +21,7 @@ interface TwinData {
 }
 
 export default function TwinCreated() {
+  const { user, getToken } = useAuth()
   const [twinData, setTwinData] = useState<TwinData | null>(null)
   const [twinAppLink, setTwinAppLink] = useState<string>("")
   const [twinId, setTwinId] = useState<string>("")
@@ -146,8 +148,36 @@ export default function TwinCreated() {
       const result = await response.json()
 
       if (response.ok && result.verified) {
+        // Set verified state
         setIsVerified(true)
         setVerificationError("")
+        
+        // Update ownership_verified to true on Talk2Me API
+        try {
+          const authToken = await getToken()
+          if (!authToken) {
+            console.warn("⚠️ No auth token available for ownership verification update")
+            return
+          }
+
+          console.log("🚀 API Call: Setting ownership_verified to true for creator", twinId)
+          const verificationUpdateResponse = await fetch(`https://api.talk2me.ai/creators/${twinId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({ ownership_verified: true }),
+          })
+
+          if (!verificationUpdateResponse.ok) {
+            throw new Error(`Failed to set ownership_verified: ${verificationUpdateResponse.statusText}`)
+          }
+          console.log("✅ Successfully set ownership_verified to true")
+        } catch (verificationUpdateError) {
+          console.error("⚠️ Failed to update ownership_verified on Talk2Me:", verificationUpdateError)
+          // Don't show this error to user since verification itself succeeded
+        }
       } else {
         setVerificationError(result.error || "Verification failed. Please make sure the Twin ID is in your Substack about page.")
       }
