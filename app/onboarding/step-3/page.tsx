@@ -697,13 +697,18 @@ export default function Step3() {
         imageBlob = await createDefaultImage(creatorName)
       }
 
-      // Derive a filename with extension if possible
-      let fileName = "profile.png"
+      // Derive a unique filename with extension and timestamp
+      const timestamp = Date.now()
+      const randomId = Math.random().toString(36).substring(2, 9)
+      let fileExtension = "png"
+      
       const urlForName = profilePicturePreview || (typeof window !== "undefined" ? (JSON.parse(localStorage.getItem("substackAnalysis") || "null")?.variables?.CREATOR_IMAGE || "") : "")
       if (typeof urlForName === "string") {
         const m = urlForName.match(/\.([a-zA-Z0-9]{3,4})(?:\?|$)/)
-        if (m && m[1]) fileName = `profile.${m[1].toLowerCase()}`
+        if (m && m[1]) fileExtension = m[1].toLowerCase()
       }
+      
+      const fileName = `profile-${timestamp}-${randomId}.${fileExtension}`
 
       formData.append("image_file", imageBlob, fileName)
 
@@ -729,6 +734,20 @@ export default function Step3() {
       const categoryId = categoryMapping[category] || "6"
       formData.append("category_ids", categoryId)
       formData.append("websearch", "false")
+
+      console.log("🚀 API Call 1: Creating Twin")
+      console.log("📍 Endpoint: POST https://api.talk2me.ai/creators/account")
+      console.log("📋 FormData fields:", {
+        name: creatorName,
+        title: `${creatorName}'s AI Twin`,
+        subtitle: creatorDescription.substring(0, 100),
+        voice_id: voiceIdToUse,
+        system_prompt: systemPrompt.substring(0, 100) + "...",
+        greeting_prompt: creatorGreeting.substring(0, 100) + "...",
+        category_ids: categoryId,
+        websearch: "false",
+        image_file: imageBlob ? `Blob(${imageBlob.size} bytes)` : "none"
+      })
 
       const response = await fetch("https://api.talk2me.ai/creators/account", {
         method: "POST",
@@ -792,6 +811,64 @@ export default function Step3() {
     }
   }
 
+  const setServiceProviders = async (authToken: string, creatorId: number) => {
+    try {
+      const serviceProviders = [
+        {
+          service_provider_id: 43,
+          service_type: "LLM",
+          is_default: false
+        },
+        {
+          service_provider_id: 21,
+          service_type: "TTS",
+          is_default: false
+        },
+        {
+          service_provider_id: 15,
+          service_type: "STT",
+          is_default: false
+        }
+      ]
+
+      const createdServices = []
+
+      // Set each service provider with separate API calls
+      for (let i = 0; i < serviceProviders.length; i++) {
+        const serviceData = serviceProviders[i]
+        
+        console.log(`🚀 API Call ${i + 2}: Setting ${serviceData.service_type} Service Provider`)
+        console.log(`📍 Endpoint: POST https://api.talk2me.ai/service-providers/creators/${creatorId}/services`)
+        console.log("📋 Request Body:", JSON.stringify(serviceData, null, 2))
+        
+        const response = await fetch(`https://api.talk2me.ai/service-providers/creators/${creatorId}/services`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(serviceData),
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error(`❌ Failed to set ${serviceData.service_type} service provider:`, errorText)
+          throw new Error(`Failed to set ${serviceData.service_type} service provider: ${response.status} - ${errorText}`)
+        }
+
+        const result = await response.json()
+        createdServices.push(result)
+        console.log(`✅ Successfully set ${serviceData.service_type} service provider`)
+      }
+
+      console.log(`✅ All ${createdServices.length} service providers configured successfully`)
+      return createdServices
+    } catch (error) {
+      console.error("❌ Service provider configuration failed:", error)
+      throw error
+    }
+  }
+
   const createBillingPlan = async (authToken: string, creatorId: number) => {
     try {
       // Create both plans regardless of user selection
@@ -824,7 +901,9 @@ export default function Step3() {
       for (let i = 0; i < plans.length; i++) {
         const planData = plans[i]
         
-        console.log(`💳 Creating plan ${i + 1}/${plans.length}:`, planData.name)
+        console.log(`🚀 API Call ${i + 5}: Creating ${planData.name}`)
+        console.log("📍 Endpoint: POST https://api.talk2me.ai/plans/")
+        console.log("📋 Request Body:", JSON.stringify(planData, null, 2))
         
         const response = await fetch("https://api.talk2me.ai/plans/", {
           method: "POST",
@@ -889,16 +968,28 @@ export default function Step3() {
       // Create twin on Talk2Me
       const twinResult = await createTwin(authToken)
 
-      // Optionally create billing plan
-      try {
-        let creatorId = null
-        if (twinResult.creator?.id) creatorId = twinResult.creator.id
-        else if (twinResult.creator_id) creatorId = twinResult.creator_id
-        else if (twinResult.id && !isNaN(Number(twinResult.id))) creatorId = twinResult.id
+      // Extract creator ID for subsequent operations
+      let creatorId = null
+      if (twinResult.creator?.id) creatorId = twinResult.creator.id
+      else if (twinResult.creator_id) creatorId = twinResult.creator_id
+      else if (twinResult.id && !isNaN(Number(twinResult.id))) creatorId = twinResult.id
 
-        if (creatorId) await createBillingPlan(authToken, Number(creatorId))
-      } catch (billingError) {
-        setError("Twin created, but billing plan creation failed. You may need to set up billing manually.")
+      if (creatorId) {
+        // Set service providers (LLM, TTS, STT)
+        try {
+          await setServiceProviders(authToken, Number(creatorId))
+        } catch (serviceError) {
+          console.error("⚠️ Service provider setup failed:", serviceError)
+          setError("Twin created, but service provider setup failed. Default services will be used.")
+        }
+
+        // Create billing plans
+        try {
+          await createBillingPlan(authToken, Number(creatorId))
+        } catch (billingError) {
+          console.error("⚠️ Billing plan creation failed:", billingError)
+          setError("Twin created, but billing plan creation failed. You may need to set up billing manually.")
+        }
       }
 
       setTimeout(() => {
