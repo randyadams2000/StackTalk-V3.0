@@ -170,6 +170,10 @@ export default function TwinCreated() {
             body: JSON.stringify({ ownership_verified: true, published: true }),
           })
 
+          const responseData = await verificationUpdateResponse.json()
+          console.log("📥 PATCH Response Status:", verificationUpdateResponse.status)
+          console.log("📥 PATCH Response Data:", responseData)
+
           if (!verificationUpdateResponse.ok) {
             throw new Error(`Failed to set ownership_verified and published: ${verificationUpdateResponse.statusText}`)
           }

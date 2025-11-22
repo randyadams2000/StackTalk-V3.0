@@ -64,8 +64,7 @@ export default function Step2() {
 
   // Plan options
   const planConfig = {
-    starter: { price: '4.99', minutes: '60' },
-    pro: { price: '9.99', minutes: '60' }
+    starter: { price: '4.99', minutes: '60' }
   }
 
   // Helper to fetch an image URL and convert to data URL for reliable preview/storage

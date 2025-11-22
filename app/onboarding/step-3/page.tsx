@@ -987,14 +987,14 @@ export default function Step3() {
             body: JSON.stringify({ ownership_verified: false, published: false }),
           })
 
+          const responseData = await verificationResponse.json()
+          console.log("📥 PATCH Response Status:", verificationResponse.status)
+          console.log("📥 PATCH Response Data:", responseData)
+
           if (!verificationResponse.ok) {
             throw new Error(`Failed to set ownership_verified and published: ${verificationResponse.statusText}`)
           }
-          console.log("✅ 
-            
-            
-            
-            ")
+          console.log("✅ Successfully set ownership_verified and published to false")
         } catch (verificationError) {
           console.error("⚠️ Setting ownership_verified failed:", verificationError)
         }
