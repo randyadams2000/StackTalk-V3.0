@@ -975,22 +975,26 @@ export default function Step3() {
       else if (twinResult.id && !isNaN(Number(twinResult.id))) creatorId = twinResult.id
 
       if (creatorId) {
-        // Set ownership_verified to false
+        // Set ownership_verified and published to false
         try {
-          console.log("🚀 API Call: Setting ownership_verified to false for creator", creatorId)
+          console.log("🚀 API Call: Setting ownership_verified and published to false for creator", creatorId)
           const verificationResponse = await fetch(`https://api.talk2me.ai/creators/${creatorId}`, {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${authToken}`,
             },
-            body: JSON.stringify({ ownership_verified: false }),
+            body: JSON.stringify({ ownership_verified: false, published: false }),
           })
 
           if (!verificationResponse.ok) {
-            throw new Error(`Failed to set ownership_verified: ${verificationResponse.statusText}`)
+            throw new Error(`Failed to set ownership_verified and published: ${verificationResponse.statusText}`)
           }
-          console.log("✅ Successfully set ownership_verified to false")
+          console.log("✅ 
+            
+            
+            
+            ")
         } catch (verificationError) {
           console.error("⚠️ Setting ownership_verified failed:", verificationError)
         }

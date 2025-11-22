@@ -160,20 +160,20 @@ export default function TwinCreated() {
             return
           }
 
-          console.log("🚀 API Call: Setting ownership_verified to true for creator", twinId)
+          console.log("🚀 API Call: Setting ownership_verified and published to true for creator", twinId)
           const verificationUpdateResponse = await fetch(`https://api.talk2me.ai/creators/${twinId}`, {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${authToken}`,
             },
-            body: JSON.stringify({ ownership_verified: true }),
+            body: JSON.stringify({ ownership_verified: true, published: true }),
           })
 
           if (!verificationUpdateResponse.ok) {
-            throw new Error(`Failed to set ownership_verified: ${verificationUpdateResponse.statusText}`)
+            throw new Error(`Failed to set ownership_verified and published: ${verificationUpdateResponse.statusText}`)
           }
-          console.log("✅ Successfully set ownership_verified to true")
+          console.log("✅ Successfully set ownership_verified and published to true")
         } catch (verificationUpdateError) {
           console.error("⚠️ Failed to update ownership_verified on Talk2Me:", verificationUpdateError)
           // Don't show this error to user since verification itself succeeded
