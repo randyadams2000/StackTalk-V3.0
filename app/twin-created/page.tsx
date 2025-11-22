@@ -161,13 +161,17 @@ export default function TwinCreated() {
           }
 
           console.log("🚀 API Call: Setting ownership_verified and published to true for creator", twinId)
+          
+          const formData = new FormData()
+          formData.append("ownership_verified", "true")
+          formData.append("published", "true")
+          
           const verificationUpdateResponse = await fetch(`https://api.talk2me.ai/creators/${twinId}`, {
             method: "PATCH",
             headers: {
-              "Content-Type": "application/json",
               Authorization: `Bearer ${authToken}`,
             },
-            body: JSON.stringify({ ownership_verified: true, published: true }),
+            body: formData,
           })
 
           const responseData = await verificationUpdateResponse.json()

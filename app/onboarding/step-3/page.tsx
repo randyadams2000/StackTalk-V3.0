@@ -810,7 +810,62 @@ export default function Step3() {
       throw error
     }
   }
+   const setNoVerify = async (authToken: string, creatorId: number) => {
+       // Set ownership_verified to false
+        try {
+          console.log("🚀 API Call: Setting ownership_verified false for creator", creatorId)
+          
+          const formData = new FormData()
+          formData.append("ownership_verified", "false")
+          
+          const verificationResponse = await fetch(`https://api.talk2me.ai/creators/${creatorId}`, {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+            body: formData,
+          })
 
+          const responseData = await verificationResponse.json()
+          console.log("📥 PATCH Response Status:", verificationResponse.status)
+          console.log("📥 PATCH Response Data:", responseData)
+
+          if (!verificationResponse.ok) {
+            throw new Error(`Failed to set ownership_verified: ${verificationResponse.statusText}`)
+          }
+          console.log("✅ Successfully set ownership_verified to false")
+        } catch (verificationError) {
+          console.error("⚠️ Setting ownership_verified failed:", verificationError)
+        }
+      }
+   const setNoPublish = async (authToken: string, creatorId: number) => {
+       // Set published to false
+        try {
+          console.log("🚀 API Call: Setting published to false for creator", creatorId)
+          
+          const formData = new FormData()
+          formData.append("published", "false")
+          
+          const verificationResponse = await fetch(`https://api.talk2me.ai/creators/${creatorId}`, {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+            body: formData,
+          })
+
+          const responseData = await verificationResponse.json()
+          console.log("📥 PATCH Response Status:", verificationResponse.status)
+          console.log("📥 PATCH Response Data:", responseData)
+
+          if (!verificationResponse.ok) {
+            throw new Error(`Failed to set published: ${verificationResponse.statusText}`)
+          }
+          console.log("✅ Successfully set published to false")
+        } catch (verificationError) {
+          console.error("⚠️ Setting published failed:", verificationError)
+        }
+      }
   const setServiceProviders = async (authToken: string, creatorId: number) => {
     try {
       const serviceProviders = [
@@ -880,16 +935,6 @@ export default function Step3() {
           monthly_price: 4.99,
           yearly_price: 49.90, // 10 months pricing
           talk_minutes: 25,
-          is_active: true,
-          creator_id: creatorId
-        },
-        {
-          name: "Pro Plan", 
-          description: "Great for regular conversations",
-          plan_type: "PAID",
-          monthly_price: 9.99,
-          yearly_price: 99.90, // 10 months pricing
-          talk_minutes: 60,
           is_active: true,
           creator_id: creatorId
         }
@@ -975,30 +1020,21 @@ export default function Step3() {
       else if (twinResult.id && !isNaN(Number(twinResult.id))) creatorId = twinResult.id
 
       if (creatorId) {
-        // Set ownership_verified and published to false
+        // Set service providers (LLM, TTS, STT)
         try {
-          console.log("🚀 API Call: Setting ownership_verified and published to false for creator", creatorId)
-          const verificationResponse = await fetch(`https://api.talk2me.ai/creators/${creatorId}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authToken}`,
-            },
-            body: JSON.stringify({ ownership_verified: false, published: false }),
-          })
-
-          const responseData = await verificationResponse.json()
-          console.log("📥 PATCH Response Status:", verificationResponse.status)
-          console.log("📥 PATCH Response Data:", responseData)
-
-          if (!verificationResponse.ok) {
-            throw new Error(`Failed to set ownership_verified and published: ${verificationResponse.statusText}`)
-          }
-          console.log("✅ Successfully set ownership_verified and published to false")
-        } catch (verificationError) {
-          console.error("⚠️ Setting ownership_verified failed:", verificationError)
+          await setNoPublish(authToken, Number(creatorId))
+        } catch (noPublishError) {
+          console.error("⚠️ NoPublish failed:", noPublishError)
+          setError("Twin created, but no publish setup failed. Publish set to true")
         }
-
+          
+        try {
+          await setNoVerify(authToken, Number(creatorId))
+        } catch (noVerifyError) {
+          console.error("⚠️ NoPublish failed:", noVerifyError)
+          setError("Twin created, but no verify setup failed. ownership_verified set to true")
+        }
+          
         // Set service providers (LLM, TTS, STT)
         try {
           await setServiceProviders(authToken, Number(creatorId))
