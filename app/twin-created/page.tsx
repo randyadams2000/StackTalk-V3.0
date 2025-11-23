@@ -25,6 +25,7 @@ export default function TwinCreated() {
   const [twinData, setTwinData] = useState<TwinData | null>(null)
   const [twinAppLink, setTwinAppLink] = useState<string>("")
   const [twinId, setTwinId] = useState<string>("")
+  const [creatorId, setCreatorId] = useState<string>("")
   const [isVerified, setIsVerified] = useState<boolean>(false)
   const [isVerifying, setIsVerifying] = useState<boolean>(false)
   const [verificationError, setVerificationError] = useState<string>("")
@@ -70,6 +71,7 @@ export default function TwinCreated() {
     const stored = localStorage.getItem("substackAnalysis")
     const storedTwinData = localStorage.getItem("twinData")
     const storedTwinId = localStorage.getItem("twinId")
+    const storedCreatorId = localStorage.getItem("creatorId")
     const storedAppLink = localStorage.getItem("twinAppLink")
 
     if (stored) {
@@ -87,6 +89,10 @@ export default function TwinCreated() {
 
     if (storedTwinId) {
       setTwinId(storedTwinId)
+    }
+
+    if (storedCreatorId) {
+      setCreatorId(storedCreatorId)
     }
 
     if (storedAppLink) {
@@ -127,6 +133,11 @@ export default function TwinCreated() {
       return
     }
 
+    if (!creatorId) {
+      setVerificationError("Creator ID not found. Please try creating your twin again.")
+      return
+    }
+
     setIsVerifying(true)
     setVerificationError("")
 
@@ -152,6 +163,7 @@ export default function TwinCreated() {
         setIsVerified(true)
         setVerificationError("")
         
+        
         // Update ownership_verified to true on Talk2Me API
         try {
           const authToken = await getToken()
@@ -160,13 +172,13 @@ export default function TwinCreated() {
             return
           }
 
-          console.log("🚀 API Call: Setting ownership_verified and published to true for creator", twinId)
+          console.log("🚀 API Call: Setting ownership_verified and published to true for creator ID:", creatorId)
           
           const formData = new FormData()
           formData.append("ownership_verified", "true")
           formData.append("published", "true")
           
-          const verificationUpdateResponse = await fetch(`https://api.talk2me.ai/creators/${twinId}`, {
+          const verificationUpdateResponse = await fetch(`https://api.talk2me.ai/creators/${creatorId}`, {
             method: "PATCH",
             headers: {
               Authorization: `Bearer ${authToken}`,
@@ -179,6 +191,12 @@ export default function TwinCreated() {
           console.log("📥 PATCH Response Data:", responseData)
 
           if (!verificationUpdateResponse.ok) {
+            if (responseData.detail && Array.isArray(responseData.detail)) {
+              console.error("❌ Validation errors:")
+              responseData.detail.forEach((err: any, idx: number) => {
+                console.error(`  ${idx + 1}. ${JSON.stringify(err)}`)
+              })
+            }
             throw new Error(`Failed to set ownership_verified and published: ${verificationUpdateResponse.statusText}`)
           }
           console.log("✅ Successfully set ownership_verified and published to true")
@@ -203,7 +221,7 @@ export default function TwinCreated() {
         <Card className="w-full max-w-md bg-gray-800 border-gray-600">
           <CardHeader>
             <CardTitle className="text-white">Loading...</CardTitle>
-            <CardDescription className="text-gray-300">Preparing your AI twin data</CardDescription>
+            <CardDescription className="text-gray-300">Preparing your Talk2Me Twin data</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -220,7 +238,7 @@ export default function TwinCreated() {
           </div>
           <h1 className="text-4xl font-bold text-white mb-3">🎉 Your AI Twin is Ready!</h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            {twinData.author}'s AI twin has been successfully created with dynamic system variables
+            {twinData.author}'s Talk2Me Twin has been successfully created with dynamic system variables
           </p>
         </div>
 
@@ -229,10 +247,10 @@ export default function TwinCreated() {
           <CardHeader className="bg-blue-900/20">
             <CardTitle className="flex items-center gap-2 text-blue-400">
               <MessageSquare className="h-5 w-5" />
-              Your VoiceBot is Ready!
+              Your Talk2Me Twin is Ready!
             </CardTitle>
             <CardDescription className="text-blue-300">
-              Test your AI twin and see how it responds to questions
+              Test your Talk2Me Twin and see how it responds to questions
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
@@ -243,7 +261,7 @@ export default function TwinCreated() {
                 className="bg-purple-600 hover:bg-purple-700 px-8"
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Test Your VoiceBot
+                Test Your Talk2Me Twin
               </Button>
             </div>
           </CardContent>
@@ -311,7 +329,7 @@ export default function TwinCreated() {
                   <CheckCircle className="h-5 w-5 text-green-400" />
                   <div className="text-green-200">
                     <p className="font-medium">✅ Verified Successfully!</p>
-                    <p className="text-sm">Your StackTalk is now published and available for others to use.</p>
+                    <p className="text-sm">Your Talk2Me Twin is now published and available for others to use.</p>
                   </div>
                 </div>
               </div>

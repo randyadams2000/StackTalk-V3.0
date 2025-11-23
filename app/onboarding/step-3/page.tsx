@@ -783,6 +783,7 @@ export default function Step3() {
 
       const result = await response.json()
       const twinId = result.creator?.ext_id
+      const creatorId = result.creator?.id
 
       if (twinId) {
         const twinIdStr = String(twinId).trim()
@@ -791,6 +792,9 @@ export default function Step3() {
         if (typeof window !== "undefined") {
           localStorage.setItem("twinId", twinIdStr)
           localStorage.setItem("twinAppLink", appLink)
+          if (creatorId) {
+            localStorage.setItem("creatorId", String(creatorId))
+          }
           localStorage.setItem(
             "twinData",
             JSON.stringify({
