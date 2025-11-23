@@ -1010,6 +1010,42 @@ export default function Step3() {
       const authToken = await getToken()
       if (!authToken) throw new Error("Failed to get Firebase authentication token. Please sign in again.")
 
+      // Register user account first
+      try {
+        console.log("🚀 API Call 0: Registering User Account")
+        console.log("📍 Endpoint: POST https://api.talk2me.ai/users/account")
+        console.log("📋 Request Body:", {
+          name: userName || creatorName,
+          email: userEmail || user.email,
+          phone: userPhone || ""
+        })
+
+        const userRegistrationResponse = await fetch("https://api.talk2me.ai/users/account", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({
+            name: userName || creatorName,
+            email: userEmail || user.email,
+            phone: userPhone || ""
+          }),
+        })
+
+        if (!userRegistrationResponse.ok) {
+          const errorText = await userRegistrationResponse.text()
+          console.warn("⚠️ User registration failed:", userRegistrationResponse.status, errorText)
+          // Don't throw error - continue with creator creation even if user registration fails
+        } else {
+          const userResult = await userRegistrationResponse.json()
+          console.log("✅ User registered successfully:", userResult)
+        }
+      } catch (userRegError) {
+        console.warn("⚠️ User registration error:", userRegError)
+        // Continue with creator creation even if user registration fails
+      }
+
       // Create twin on Talk2Me
       const twinResult = await createTwin(authToken)
 
