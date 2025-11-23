@@ -933,12 +933,22 @@ export default function Step3() {
       // Create both plans regardless of user selection
       const plans = [
         {
+          name: "Free Trial",
+          description: "15 free minutes to try your AI twin",
+          plan_type: "FREE",
+          monthly_price: 0,
+          yearly_price: 0,
+          talk_minutes: 15,
+          is_active: true,
+          creator_id: creatorId
+        },
+        {
           name: "Starter Plan",
           description: "Perfect for trying out your AI twin",
           plan_type: "PAID",
           monthly_price: 4.99,
           yearly_price: 49.90, // 10 months pricing
-          talk_minutes: 25,
+          talk_minutes: 30,
           is_active: true,
           creator_id: creatorId
         }

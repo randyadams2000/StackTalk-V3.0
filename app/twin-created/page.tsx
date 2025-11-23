@@ -384,7 +384,7 @@ export default function TwinCreated() {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto leading-relaxed">
-                Your fans will get 30 free minutes of access and then they will be asked to subscribe at $4.99/month. 
+                Your fans will get 15 free minutes of access and then they will be asked to subscribe at $4.99/month. 
                 You will receive $3.99 of that payment. We will distribute the payment to you monthly via Zelle or your perferred method of payment.
               </p>
             </div>
