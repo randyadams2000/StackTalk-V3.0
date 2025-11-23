@@ -84,6 +84,14 @@ export default function Step1() {
       const result: AnalysisResult = await response.json()
       console.log("📊 Analysis result:", result)
 
+      // Check for critical RSS connection error
+      if (!result.success && result.error === "CANNOT_CONNECT_TO_SUBSTACK") {
+        setIsAnalyzing(false)
+        alert("I'm sorry, cannot continue. Unable to connect to your Substack page.")
+        setError("Unable to connect to Substack RSS feed. Please verify the URL is correct and the Substack page is accessible.")
+        return
+      }
+
       setAnalysisResult(result)
 
       // Store comprehensive data for next steps and system prompt variables

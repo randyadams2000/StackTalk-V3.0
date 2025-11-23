@@ -297,9 +297,20 @@ export async function POST(request: NextRequest) {
         preview: rssContent.substring(0, 500),
       })
 
-      // Validate RSS content
+      // Validate RSS content - throw error if not valid RSS format
       if (!rssContent.includes("<rss") && !rssContent.includes("<feed") && !rssContent.includes("<?xml")) {
-        throw new Error("Response is not valid RSS/XML format")
+        console.error("❌ Invalid RSS format - content does not appear to be XML/RSS")
+        throw new Error("RSS_INVALID_FORMAT")
+      }
+
+      // Additional validation: check for basic RSS structure
+      const hasValidRssStructure = 
+        (rssContent.includes("<rss") && rssContent.includes("<channel>")) ||
+        (rssContent.includes("<feed") && rssContent.includes("xmlns"))
+      
+      if (!hasValidRssStructure) {
+        console.error("❌ Invalid RSS structure - missing required RSS elements")
+        throw new Error("RSS_INVALID_STRUCTURE")
       }
 
       // Extract feed metadata
@@ -371,6 +382,20 @@ export async function POST(request: NextRequest) {
       console.log("📚 Total valid posts extracted:", posts.length)
     } catch (rssError) {
       console.error("❌ RSS fetch/parse error:", rssError)
+      
+      // Check if this is a critical RSS format error
+      if (rssError instanceof Error) {
+        if (rssError.message === "RSS_INVALID_FORMAT" || rssError.message === "RSS_INVALID_STRUCTURE") {
+          // Return error immediately without fallback for invalid RSS format
+          return NextResponse.json({
+            success: false,
+            error: "CANNOT_CONNECT_TO_SUBSTACK",
+            message: "I'm sorry, cannot continue. Unable to connect to your Substack page.",
+            data: null
+          }, { status: 400 })
+        }
+      }
+      
       console.log("🔄 Will use fallback data...")
     }
 
