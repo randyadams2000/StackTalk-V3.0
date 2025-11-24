@@ -168,6 +168,11 @@ export default function LandingPage() {
               {user ? (
                 <div className="flex items-center space-x-4">
                   <span className="text-sm text-gray-300">Welcome, {user.displayName || user.email}</span>
+                  <Link href="/dashboard">
+                    <Button variant="outline" className="bg-transparent border-purple-500 text-purple-400 hover:bg-purple-500/10">
+                      Dashboard
+                    </Button>
+                  </Link>
                   <Button variant="outline" className="bg-transparent" onClick={handleLogout}>
                     Sign Out
                   </Button>
