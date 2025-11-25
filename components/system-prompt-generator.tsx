@@ -91,7 +91,7 @@ export default function SystemPromptGenerator({
   }
 
   return (
-    <Card className={`bg-gray-800 border-gray-700 ${className}`}>
+    <Card className={`bg-black border-gray-700 ${className}`}>
       <CardHeader>
         <CardTitle className="text-xl text-white flex items-center gap-2">
           🤖 AI System Prompt Generator

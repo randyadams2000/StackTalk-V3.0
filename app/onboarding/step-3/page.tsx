@@ -1122,7 +1122,7 @@ export default function Step3() {
     (useDefaultVoice && selectedDefaultVoice && tone)
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white py-12">
+    <div className="min-h-screen bg-black text-white py-12">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
           {/* Progress Bar */}
@@ -1136,7 +1136,7 @@ export default function Step3() {
             </div>
           </div>
 
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-black border-gray-700">
             <CardHeader>
               <CardTitle className="text-2xl text-gray-400 text-center">Personalize Your AI Twin</CardTitle>
               <p className="text-gray-400 text-center">
@@ -1218,10 +1218,10 @@ export default function Step3() {
                             }
                           }}
                         >
-                          <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-gray-300">
+                          <SelectTrigger className="w-full bg-black border-gray-600 text-gray-300">
                             <SelectValue placeholder="Choose a voice..." />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-600">
+                          <SelectContent className="bg-black border-gray-600">
                             {defaultVoices.map((voice) => (
                               <SelectItem key={voice.id} value={voice.id} className="text-gray-300 hover:bg-gray-700">
                                 <div className="flex flex-col items-start">

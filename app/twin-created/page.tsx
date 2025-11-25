@@ -217,8 +217,8 @@ export default function TwinCreated() {
 
   if (!twinData) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <Card className="w-full max-w-md bg-gray-800 border-gray-600">
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Card className="w-full max-w-md bg-black border-gray-600">
           <CardHeader>
             <CardTitle className="text-white">Loading...</CardTitle>
             <CardDescription className="text-gray-300">Preparing your Talk2Me Twin data</CardDescription>
@@ -229,7 +229,7 @@ export default function TwinCreated() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4">
+    <div className="min-h-screen bg-black text-white p-4">
       <div className="max-w-4xl mx-auto pt-8">
         {/* Success Header */}
         <div className="text-center mb-8">
@@ -243,7 +243,7 @@ export default function TwinCreated() {
         </div>
 
         {/* Test VoiceBot Section */}
-        <Card className="mb-8 shadow-lg border-blue-600/30 bg-gray-800">
+        <Card className="mb-8 shadow-lg border-blue-600/30 bg-black">
           <CardHeader className="bg-blue-900/20">
             <CardTitle className="flex items-center gap-2 text-blue-400">
               <MessageSquare className="h-5 w-5" />
@@ -269,7 +269,7 @@ export default function TwinCreated() {
 
 
         {/* Verification Section */}
-        <Card className="mb-8 shadow-lg border-orange-600/30 bg-gray-800">
+        <Card className="mb-8 shadow-lg border-orange-600/30 bg-black">
           <CardHeader className="bg-orange-900/20">
             <CardTitle className="flex items-center gap-2 text-orange-400">
               <Shield className="h-5 w-5" />
@@ -292,7 +292,7 @@ export default function TwinCreated() {
             </div>
 
             {/* Twin ID Display */}
-            <div className="bg-gray-800 rounded-lg p-4 border mb-4">
+            <div className="bg-black rounded-lg p-4 border mb-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="text-sm text-gray-300 mb-1">Add this link (can be tremporary) somewhere on you about page and click the button below..</div>
@@ -372,7 +372,7 @@ export default function TwinCreated() {
         </Card>
 
         {/* Stripe Connection Section */}
-        <Card className="mb-8 shadow-lg border-green-600/30 bg-gray-800">
+        <Card className="mb-8 shadow-lg border-green-600/30 bg-black">
           <CardHeader className="bg-green-900/20">
             <CardTitle className="flex items-center gap-2 text-green-400">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

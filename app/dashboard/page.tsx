@@ -56,8 +56,8 @@ export default function Dashboard() {
 
   if (!substackData) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <Card className="w-full max-w-md bg-gray-800 border-gray-700">
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <Card className="w-full max-w-md bg-black border-gray-700">
           <CardHeader>
             <CardTitle className="text-white">No Data Found</CardTitle>
             <CardDescription className="text-gray-300">Please complete the onboarding process first.</CardDescription>
@@ -73,7 +73,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4">
+    <div className="min-h-screen bg-black text-white p-4">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">AI Twin Dashboard</h1>
@@ -82,7 +82,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* Creator Profile */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-black border-gray-700">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <User className="h-5 w-5" />
@@ -99,7 +99,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Chat Interface */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-black border-gray-700">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <MessageSquare className="h-5 w-5" />
@@ -113,7 +113,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Voice Clone */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-black border-gray-700">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <Mic className="h-5 w-5" />
@@ -190,7 +190,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Recent Posts */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-black border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Rss className="h-5 w-5" />

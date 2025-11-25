@@ -130,7 +130,7 @@ export default function Step1() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4">
+    <div className="min-h-screen bg-black text-white p-4">
       <div className="max-w-3xl mx-auto pt-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -141,7 +141,7 @@ export default function Step1() {
         </div>
 
         {/* URL Input Card */}
-        <Card className="mb-6 shadow-lg bg-gray-800 border-gray-700">
+        <Card className="mb-6 shadow-lg bg-black border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Rss className="h-5 w-5 text-orange-500" />
@@ -196,7 +196,7 @@ export default function Step1() {
 
         {/* Analysis Results */}
         {analysisResult?.data && (
-          <Card className="mb-6 shadow-lg border-green-600/30 bg-gray-800">
+          <Card className="mb-6 shadow-lg border-green-600/30 bg-black">
             <CardHeader className="bg-green-900/20">
               <CardTitle className="flex items-center gap-2 text-green-400">
                 <CheckCircle className="h-5 w-5" />
@@ -235,7 +235,7 @@ export default function Step1() {
               </div>
 
               {/* System Variables */}
-              <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+              <div className="bg-black/50 rounded-lg p-4 border border-gray-600">
                 <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
                   <Globe className="h-4 w-4" />
                   Generated System Variables

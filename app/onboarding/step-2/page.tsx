@@ -444,7 +444,7 @@ Remember: You are not just an AI assistant, but ${analysisData.author}'s digital
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white py-12">
+      <div className="min-h-screen bg-black text-white py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
             <div className="text-center py-16">
@@ -468,7 +468,7 @@ Remember: You are not just an AI assistant, but ${analysisData.author}'s digital
 
   if (!substackData) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white py-12">
+      <div className="min-h-screen bg-black text-white py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
             <div className="text-center py-16">
@@ -485,7 +485,7 @@ Remember: You are not just an AI assistant, but ${analysisData.author}'s digital
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white py-12">
+    <div className="min-h-screen bg-black text-white py-12">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
           {/* Progress Bar */}
@@ -499,7 +499,7 @@ Remember: You are not just an AI assistant, but ${analysisData.author}'s digital
             </div>
           </div>
 
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-black border-gray-700">
             <CardHeader>
               <CardTitle className="text-2xl text-center text-white">Set Up Your Profile</CardTitle>
               <p className="text-gray-300 text-center">

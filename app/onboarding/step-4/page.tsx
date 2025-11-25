@@ -624,7 +624,7 @@ export default function Step4() {
   // Don't render until mounted to avoid hydration issues
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white py-12">
+      <div className="min-h-screen bg-black text-white py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
             <div className="text-center py-16">
@@ -638,7 +638,7 @@ export default function Step4() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white py-12">
+    <div className="min-h-screen bg-black text-white py-12">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
           <div className="mb-8">
@@ -651,7 +651,7 @@ export default function Step4() {
             </div>
           </div>
 
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-black border-gray-700">
             <CardHeader>
               <CardTitle className="text-2xl text-center">Review & Launch Your AI Twin</CardTitle>
               <p className="text-gray-400 text-center">Review your settings before launching your AI twin</p>
