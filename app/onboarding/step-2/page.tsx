@@ -455,7 +455,7 @@ Remember: You are not just an AI assistant, but ${analysisData.author}'s digital
               </p>
               <div className="text-xs text-blue-400 space-y-1">
                 <div>✨ Auto-selecting content category...</div>
-                <div>✨ Generating system prompt with GPT-4...</div>
+                <div>✨ Generating system prompt with GPT-5.1...</div>
                 <div>✨ Creating profile picture placeholder...</div>
                 <div>✨ Personalizing description and greeting...</div>
               </div>

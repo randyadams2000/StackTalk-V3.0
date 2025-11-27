@@ -1,6 +1,6 @@
 # SubStack AI System Prompt Generator
 
-This application now includes an advanced AI-powered system prompt generator that uses GPT-4 to analyze Substack RSS feeds and create customized system prompts for voice chatbots.
+This application now includes an advanced AI-powered system prompt generator that uses GPT-5.1 to analyze Substack RSS feeds and create customized system prompts for voice chatbots.
 
 ## New Features Added
 
@@ -25,7 +25,7 @@ The system prompt generator analyzes your Substack content and creates a compreh
 ### 🔧 New API Endpoints
 
 #### `/api/generate-system-prompt`
-Generates a system prompt using GPT-4 analysis of RSS feed content.
+Generates a system prompt using GPT-5.1 analysis of RSS feed content.
 
 **Request:**
 ```json

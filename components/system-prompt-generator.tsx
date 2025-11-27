@@ -102,7 +102,7 @@ export default function SystemPromptGenerator({
           )}
         </CardTitle>
         <p className="text-gray-400 text-sm">
-          Generate a custom system prompt based on your Substack content using GPT-4
+          Generate a custom system prompt based on your Substack content using GPT-5.1
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -149,7 +149,7 @@ export default function SystemPromptGenerator({
           {loading ? (
             <span className="flex items-center">
               <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-              Analyzing Content with GPT-4...
+              Analyzing Content with GPT-5.1...
             </span>
           ) : (
             "Generate System Prompt"
