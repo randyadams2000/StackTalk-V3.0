@@ -120,7 +120,7 @@ export default function TwinCreated() {
     if (twinId) {
       try {
         await navigator.clipboard.writeText(twinAppLink)
-        console.log("Twin ID copied to clipboard")
+        console.log("Persona ID copied to clipboard")
       } catch (error) {
         console.error("Failed to copy twin ID:", error)
       }
@@ -221,7 +221,7 @@ export default function TwinCreated() {
         <Card className="w-full max-w-md bg-black border-gray-600">
           <CardHeader>
             <CardTitle className="text-white">Loading...</CardTitle>
-            <CardDescription className="text-gray-300">Preparing your Talk2Me Twin data</CardDescription>
+            <CardDescription className="text-gray-300">Preparing your Persona</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -236,9 +236,9 @@ export default function TwinCreated() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-900/20 rounded-full mb-4">
             <CheckCircle className="h-8 w-8 text-green-400" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3">🎉 Your AI Twin is Ready!</h1>
+          <h1 className="text-4xl font-bold text-white mb-3">🎉 Your Persona is Ready!</h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            {twinData.author}'s Talk2Me Twin has been successfully created with dynamic system variables
+            {twinData.author}'s Persona has been successfully created with dynamic system variables
           </p>
         </div>
 
@@ -247,10 +247,10 @@ export default function TwinCreated() {
           <CardHeader className="bg-blue-900/20">
             <CardTitle className="flex items-center gap-2 text-blue-400">
               <MessageSquare className="h-5 w-5" />
-              Your Talk2Me Twin is Ready!
+              Your Persona is Ready!
             </CardTitle>
             <CardDescription className="text-blue-300">
-              Test your Talk2Me Twin and see how it responds to questions
+              Test your Persona and see how it responds to questions
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
@@ -261,7 +261,7 @@ export default function TwinCreated() {
                 className="bg-purple-600 hover:bg-purple-700 px-8"
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Test Your Talk2Me Twin
+                Test Your Persona
               </Button>
             </div>
           </CardContent>
@@ -329,7 +329,7 @@ export default function TwinCreated() {
                   <CheckCircle className="h-5 w-5 text-green-400" />
                   <div className="text-green-200">
                     <p className="font-medium">✅ Verified Successfully!</p>
-                    <p className="text-sm">Your Talk2Me Twin is now published and available for others to use.</p>
+                    <p className="text-sm">Your Persona is now published and available for others to use.</p>
                   </div>
                 </div>
               </div>

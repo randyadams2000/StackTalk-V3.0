@@ -503,7 +503,7 @@ Remember: You are not just an AI assistant, but ${analysisData.author}'s digital
             <CardHeader>
               <CardTitle className="text-2xl text-center text-white">Set Up Your Profile</CardTitle>
               <p className="text-gray-300 text-center">
-                Customize how your AI twin introduces itself with dynamic variables
+                Customize how your Persona introduces itself with dynamic variables
               </p>
             </CardHeader>
             <CardContent className="space-y-6">

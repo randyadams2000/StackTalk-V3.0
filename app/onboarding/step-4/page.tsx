@@ -653,7 +653,7 @@ export default function Step4() {
 
           <Card className="bg-black border-gray-700">
             <CardHeader>
-              <CardTitle className="text-2xl text-center">Review & Launch Your AI Twin</CardTitle>
+              <CardTitle className="text-2xl text-center">Review & Launch Your Persona</CardTitle>
               <p className="text-gray-400 text-center">Review your settings before launching your AI twin</p>
             </CardHeader>
             <CardContent className="space-y-6">

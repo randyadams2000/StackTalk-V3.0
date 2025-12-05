@@ -1129,7 +1129,7 @@ export default function Step3() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-indigo-600">Step 3 of 3</span>
-              <span className="text-sm text-gray-500">Personalize Your Twin</span>
+              <span className="text-sm text-gray-500">Build Your Voice Clone</span>
             </div>
             <div className="w-full bg-gray-700 rounded-full h-2">
               <div className="bg-purple-600 h-2 rounded-full w-full"></div>
@@ -1138,9 +1138,9 @@ export default function Step3() {
 
           <Card className="bg-black border-gray-700">
             <CardHeader>
-              <CardTitle className="text-2xl text-gray-400 text-center">Personalize Your AI Twin</CardTitle>
+              <CardTitle className="text-2xl text-gray-400 text-center">Clone Your Voice</CardTitle>
               <p className="text-gray-400 text-center">
-                Record your voice, upload a voice recording to make your twin speak in your voice.
+                Record your voice or upload a voice recording.
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1762,7 +1762,7 @@ export default function Step3() {
                 {launching ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Launching Your Twin...
+                    Launching Your Persona...
                   </>
                 ) : (
                   "🚀 Launch My Twin"
