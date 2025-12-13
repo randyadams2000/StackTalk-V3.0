@@ -238,7 +238,7 @@ export default function LandingPage() {
                 </Button>
 
                 <Button
-                  onClick={() => window.location.href = "https://app.talk2me.ai/creator/22282a78-a45a-4df5-ab49-a39e8f349f45/anonymous"}
+                  onClick={() => (window.location.href = "/dashboard")}
                   size="lg"
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-8 py-3 text-lg"
                 >
@@ -303,7 +303,7 @@ export default function LandingPage() {
             </p>
 
             <Button
-              onClick={() => window.location.href = "https://app.talk2me.ai/creator/22282a78-a45a-4df5-ab49-a39e8f349f45/anonymous"}
+              onClick={handleGetStarted}
               disabled={isStarting}
               size="lg"
               className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-8 py-3 text-lg font-semibold"

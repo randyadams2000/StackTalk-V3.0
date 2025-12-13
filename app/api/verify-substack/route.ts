@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { aboutUrl, twinId } = await request.json();
+    const { aboutUrl, agentId, verificationLink, twinId } = await request.json();
 
-    if (!aboutUrl || !twinId) {
+    const marker = agentId || twinId;
+    if (!aboutUrl || !marker) {
       return NextResponse.json(
-        { error: 'Missing required parameters: aboutUrl and twinId' },
+        { error: 'Missing required parameters: aboutUrl and agentId' },
         { status: 400 }
       );
     }
 
-    console.log(`🔍 Verifying Twin ID "${twinId}" on ${aboutUrl}`);
+    console.log(`🔍 Verifying agent marker "${marker}" on ${aboutUrl}`);
 
     // Fetch the about page content
     const response = await fetch(aboutUrl, {
@@ -35,27 +36,28 @@ export async function POST(request: NextRequest) {
 
     const html = await response.text();
     
-    // Check if the Twin ID or the full app link appears in the page content
-    const twinAppLink = `https://app.talk2me.ai/creator/${twinId}/anonymous`;
-    const containsTwinId = html.includes(twinId);
-    const containsFullLink = html.includes(twinAppLink);
+    // Check if the agent ID or a provided verification link appears in the page content
+    const containsAgentId = typeof marker === 'string' ? html.includes(marker) : false;
+    const containsVerificationLink = typeof verificationLink === 'string' && verificationLink
+      ? html.includes(verificationLink)
+      : false;
     
-    console.log(`🔍 Searching for twin ID: ${twinId}`);
-    console.log(`🔍 Searching for full link: ${twinAppLink}`);
-    console.log(`✅ Twin ID found: ${containsTwinId}`);
-    console.log(`✅ Full link found: ${containsFullLink}`);
+    console.log(`🔍 Searching for agent marker: ${marker}`);
+    console.log(`🔍 Searching for verification link: ${verificationLink || '(none provided)'}`);
+    console.log(`✅ Agent marker found: ${containsAgentId}`);
+    console.log(`✅ Verification link found: ${containsVerificationLink}`);
 
-    if (containsTwinId || containsFullLink) {
+    if (containsAgentId || containsVerificationLink) {
       console.log('🎉 Verification successful!');
       return NextResponse.json({
         verified: true,
-        message: 'Ownership verified successfully! Twin ID or link found in Substack about page.'
+        message: 'Ownership verified successfully! Agent marker or link found in Substack about page.'
       });
     } else {
       console.log('❌ Verification failed - link not found');
       return NextResponse.json({
         verified: false,
-        error: 'Twin link not found in Substack about page. Please make sure you have added the link to your about page and try again.'
+        error: 'Verification marker not found in Substack about page. Please make sure you have added the link/ID to your about page and try again.'
       });
     }
 

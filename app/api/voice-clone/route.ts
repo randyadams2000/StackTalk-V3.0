@@ -160,9 +160,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if ElevenLabs API key is available
-    const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVEN_API_KEY
+    const elevenLabsApiKey = process.env.ELEVEN_API_KEY || process.env.NEXT_PUBLIC_ELEVEN_API_KEY
     if (!elevenLabsApiKey) {
-      console.warn("⚠️ NEXT_PUBLIC_ELEVEN_API_KEY missing, returning mock")
+      console.warn("⚠️ ELEVEN_API_KEY missing, returning mock")
       return NextResponse.json({
         success: true,
         voice_id: `voice_${Date.now()}`,
@@ -176,10 +176,11 @@ export async function POST(request: NextRequest) {
     const elevenLabsFormData = new FormData()
     elevenLabsFormData.append("name", voiceName)
     elevenLabsFormData.append("description", voiceDescription)
-    const ab = audioBytes!.buffer.slice(audioBytes!.byteOffset, audioBytes!.byteOffset + audioBytes!.byteLength)
-    // TypeScript DOM types can be strict with ArrayBufferLike; cast to any for Blob construction
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    elevenLabsFormData.append("files", new Blob([ab as any], { type: audioMime }), "voice-sample")
+    const ab = audioBytes!.buffer.slice(
+      audioBytes!.byteOffset,
+      audioBytes!.byteOffset + audioBytes!.byteLength,
+    ) as ArrayBuffer
+    elevenLabsFormData.append("files", new Blob([ab], { type: audioMime }), "voice-sample")
     elevenLabsFormData.append("remove_background_noise", "true")
     elevenLabsFormData.append(
       "labels",

@@ -39,7 +39,7 @@ export default function Step3() {
   const [error, setError] = useState<string>("")
   const [debugInfo, setDebugInfo] = useState<string>("")
   const [deletingVoice, setDeletingVoice] = useState(false)
-  const { user, getToken } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
   // Voice recording states and refs
   const [isRecording, setIsRecording] = useState(false)
@@ -581,415 +581,87 @@ export default function Step3() {
     }
   }
 
-  // --- Twin creation functions ---
-  const createTwin = async (authToken: string) => {
-    try {
-      setError("")
-      setDebugInfo("")
-      let voiceIdToUse = ""
-      const storedVoiceId = typeof window !== "undefined" ? localStorage.getItem("voiceCloneId") : null
-      const backupContinueVoiceId = typeof window !== "undefined" ? localStorage.getItem("voiceCloneId_backup_continue") : null
-      
-      // Debug: Log all voice ID sources
-      console.log("🔍 Voice ID Debug:", {
-        useDefaultVoice,
-        selectedDefaultVoice,
-        voiceCloneId,
-        storedVoiceId,
-        backupContinueVoiceId
-      })
-      
-      if (backupContinueVoiceId) {
-        try {
-          const parsed = JSON.parse(backupContinueVoiceId)
-          if (parsed.voiceId && parsed.voiceId.length > 10) {
-            voiceIdToUse = parsed.voiceId
-            localStorage.setItem("voiceCloneId", voiceIdToUse)
-          }
-        } catch (e) {}
-      }
+  // --- ElevenLabs Agent creation ---
+  const createAgent = async () => {
+    setError("")
+    setDebugInfo("")
 
-      const formData = new FormData()
-      formData.append("name", creatorName)
-      formData.append("title", `${creatorName}'s AI Twin`)
-      formData.append("subtitle", creatorDescription.substring(0, 100))
+    let voiceIdToUse = ""
+    const storedVoiceId = typeof window !== "undefined" ? localStorage.getItem("voiceCloneId") : null
+    const backupContinueVoiceId =
+      typeof window !== "undefined" ? localStorage.getItem("voiceCloneId_backup_continue") : null
 
-      if (
-        storedVoiceId &&
-        storedVoiceId.trim() !== "" &&
-        storedVoiceId !== "null" &&
-        storedVoiceId !== "undefined" &&
-        !storedVoiceId.startsWith("demo-voice-") &&
-        !storedVoiceId.startsWith("fallback-voice-") &&
-        storedVoiceId.length > 10
-      ) {
-        voiceIdToUse = storedVoiceId.trim()
-      }
-
-      // Debug: Log final voice ID being used
-      console.log("🎤 Final voice ID to use:", voiceIdToUse)
-
-      formData.append("voice_id", voiceIdToUse)
-      formData.append("system_prompt", systemPrompt)
-      formData.append("greeting_prompt", creatorGreeting)
-      formData.append("new_user_greeting_prompt", creatorGreeting)
-
-      let imageBlob: Blob | null = null
+    if (useDefaultVoice && selectedDefaultVoice) {
+      voiceIdToUse = selectedDefaultVoice
+    } else if (voiceCloneId) {
+      voiceIdToUse = voiceCloneId
+    } else if (backupContinueVoiceId) {
       try {
-        // Prefer explicitly selected/preview image
-        if (profilePicturePreview) {
-          if (profilePicturePreview.startsWith("data:")) {
-            try {
-              const response = await fetch(profilePicturePreview)
-              imageBlob = await response.blob()
-            } catch (e) {
-              imageBlob = null
-            }
-          } else if (/^https?:\/\//i.test(profilePicturePreview)) {
-            try {
-              // Try direct fetch first
-              let resp = await fetch(profilePicturePreview, { mode: "cors" })
-              if (!resp.ok || !resp.body) {
-                // Fall back to proxy to avoid CORS
-                resp = await fetch(`/api/fetch-image?url=${encodeURIComponent(profilePicturePreview)}`)
-              }
-              if (resp.ok) imageBlob = await resp.blob()
-            } catch (e) {
-              // Fallback to proxy if direct failed
-              try {
-                const proxied = await fetch(`/api/fetch-image?url=${encodeURIComponent(profilePicturePreview)}`)
-                if (proxied.ok) imageBlob = await proxied.blob()
-              } catch {}
-            }
-          }
+        const parsed = JSON.parse(backupContinueVoiceId)
+        if (parsed.voiceId && String(parsed.voiceId).length > 10) {
+          voiceIdToUse = String(parsed.voiceId)
+          if (typeof window !== "undefined") localStorage.setItem("voiceCloneId", voiceIdToUse)
         }
-
-        // Fallback: try Substack analysis variable image if preview not usable
-        if (!imageBlob && typeof window !== "undefined") {
-          try {
-            const storedAnalysis = localStorage.getItem("substackAnalysis")
-            if (storedAnalysis) {
-              const parsed = JSON.parse(storedAnalysis)
-              const varImg: string | undefined = parsed?.variables?.CREATOR_IMAGE || parsed?.profileImageUrl
-              if (varImg && typeof varImg === "string") {
-                try {
-                  if (varImg.startsWith("data:")) {
-                    const r = await fetch(varImg)
-                    imageBlob = await r.blob()
-                  } else if (/^https?:\/\//i.test(varImg)) {
-                    let r = await fetch(varImg, { mode: "cors" })
-                    if (!r.ok || !r.body) {
-                      r = await fetch(`/api/fetch-image?url=${encodeURIComponent(varImg)}`)
-                    }
-                    if (r.ok) imageBlob = await r.blob()
-                  }
-                } catch {}
-              }
-            }
-          } catch {}
-        }
-
-        // Final fallback: generate placeholder
-        if (!imageBlob) {
-          imageBlob = await createDefaultImage(creatorName)
-        }
-      } catch {
-        imageBlob = await createDefaultImage(creatorName)
-      }
-
-      // Derive a unique filename with extension and timestamp
-      const timestamp = Date.now()
-      const randomId = Math.random().toString(36).substring(2, 9)
-      let fileExtension = "png"
-      
-      const urlForName = profilePicturePreview || (typeof window !== "undefined" ? (JSON.parse(localStorage.getItem("substackAnalysis") || "null")?.variables?.CREATOR_IMAGE || "") : "")
-      if (typeof urlForName === "string") {
-        const m = urlForName.match(/\.([a-zA-Z0-9]{3,4})(?:\?|$)/)
-        if (m && m[1]) fileExtension = m[1].toLowerCase()
-      }
-      
-      const fileName = `profile-${timestamp}-${randomId}.${fileExtension}`
-
-      formData.append("image_file", imageBlob, fileName)
-
-      const categoryMapping: { [key: string]: string } = {
-        "Art & Creativity": "1",
-        "Beauty & Makeup": "2",
-        "Business & Entrepreneurship": "3",
-        "Cooking & Recipes": "4",
-        "DIY & Crafting": "5",
-        "Educational Content": "6",
-        "Entertainment & Comedy": "7",
-        "Fashion & Lifestyle": "8",
-        "Fitness & Health": "9",
-        Gaming: "10",
-        "Mental Health & Wellness": "11",
-        "Motivational & Self Improvement": "12",
-        "Parenting & Family": "13",
-        Sports: "14",
-        "Technology & AI": "15",
-        "Travel & Adventure": "16",
-      }
-
-      const categoryId = categoryMapping[category] || "6"
-      formData.append("category_ids", categoryId)
-      formData.append("websearch", "false")
-
-      console.log("🚀 API Call 1: Creating Twin")
-      console.log("📍 Endpoint: POST https://api.talk2me.ai/creators/account")
-      console.log("📋 FormData fields:", {
-        name: creatorName,
-        title: `${creatorName}'s AI Twin`,
-        subtitle: creatorDescription.substring(0, 100),
-        voice_id: voiceIdToUse,
-        system_prompt: systemPrompt.substring(0, 100) + "...",
-        greeting_prompt: creatorGreeting.substring(0, 100) + "...",
-        category_ids: categoryId,
-        websearch: "false",
-        image_file: imageBlob ? `Blob(${imageBlob.size} bytes)` : "none"
-      })
-
-      const response = await fetch("https://api.talk2me.ai/creators/account", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        try {
-          const errorJson = JSON.parse(errorText)
-          setDebugInfo(`API Error: ${response.status} - ${JSON.stringify(errorJson, null, 2)}`)
-        } catch (parseError) {
-          setDebugInfo(`API Error: ${response.status} - ${errorText}`)
-        }
-
-        if (response.status === 401) {
-          throw new Error("Authentication failed. Firebase token may be invalid or expired.")
-        } else if (response.status === 403) {
-          throw new Error("Access forbidden. Please check your permissions.")
-        } else if (response.status === 500) {
-          if (errorText.includes("Voice with ID not found")) {
-            throw new Error("VOICE_NOT_FOUND")
-          } else {
-            throw new Error(`Server Error: ${errorText}`)
-          }
-        } else {
-          throw new Error(`API Error: ${response.status} - ${errorText}`)
-        }
-      }
-
-      const result = await response.json()
-      const twinId = result.creator?.ext_id
-      const creatorId = result.creator?.id
-
-      if (twinId) {
-        const twinIdStr = String(twinId).trim()
-        const appLink = `https://app.talk2me.ai/creator/${twinIdStr}/anonymous`
-
-        if (typeof window !== "undefined") {
-          localStorage.setItem("twinId", twinIdStr)
-          localStorage.setItem("twinAppLink", appLink)
-          if (creatorId) {
-            localStorage.setItem("creatorId", String(creatorId))
-          }
-          localStorage.setItem(
-            "twinData",
-            JSON.stringify({
-              ...result,
-              id: twinIdStr,
-              appLink: appLink,
-            }),
-          )
-        }
-
-        result.id = twinIdStr
-        result.appLink = appLink
-      }
-
-      return result
-    } catch (error) {
-      throw error
+      } catch {}
+    } else if (
+      storedVoiceId &&
+      storedVoiceId.trim() !== "" &&
+      storedVoiceId !== "null" &&
+      storedVoiceId !== "undefined" &&
+      !storedVoiceId.startsWith("demo-voice-") &&
+      !storedVoiceId.startsWith("fallback-voice-") &&
+      storedVoiceId.length > 10
+    ) {
+      voiceIdToUse = storedVoiceId.trim()
     }
-  }
-   const setNoVerify = async (authToken: string, creatorId: number) => {
-       // Set ownership_verified to false
-        try {
-          console.log("🚀 API Call: Setting ownership_verified false for creator", creatorId)
-          
-          const formData = new FormData()
-          formData.append("ownership_verified", "false")
-          
-          const verificationResponse = await fetch(`https://api.talk2me.ai/creators/${creatorId}`, {
-            method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-            body: formData,
-          })
 
-          const responseData = await verificationResponse.json()
-          console.log("📥 PATCH Response Status:", verificationResponse.status)
-          console.log("📥 PATCH Response Data:", responseData)
-
-          if (!verificationResponse.ok) {
-            throw new Error(`Failed to set ownership_verified: ${verificationResponse.statusText}`)
-          }
-          console.log("✅ Successfully set ownership_verified to false")
-        } catch (verificationError) {
-          console.error("⚠️ Setting ownership_verified failed:", verificationError)
-        }
-      }
-   const setNoPublish = async (authToken: string, creatorId: number) => {
-       // Set published to false
-        try {
-          console.log("🚀 API Call: Setting published to false for creator", creatorId)
-          
-          const formData = new FormData()
-          formData.append("published", "false")
-          
-          const verificationResponse = await fetch(`https://api.talk2me.ai/creators/${creatorId}`, {
-            method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-            body: formData,
-          })
-
-          const responseData = await verificationResponse.json()
-          console.log("📥 PATCH Response Status:", verificationResponse.status)
-          console.log("📥 PATCH Response Data:", responseData)
-
-          if (!verificationResponse.ok) {
-            throw new Error(`Failed to set published: ${verificationResponse.statusText}`)
-          }
-          console.log("✅ Successfully set published to false")
-        } catch (verificationError) {
-          console.error("⚠️ Setting published failed:", verificationError)
-        }
-      }
-  const setServiceProviders = async (authToken: string, creatorId: number) => {
-    try {
-      const serviceProviders = [
-        {
-          service_provider_id: 43,
-          service_type: "LLM",
-          is_default: true
-        },
-        {
-          service_provider_id: 21,
-          service_type: "TTS",
-          is_default: true
-        },
-        {
-          service_provider_id: 15,
-          service_type: "STT",
-          is_default: true
-        }
-      ]
-
-      const createdServices = []
-
-      // Set each service provider with separate API calls
-      for (let i = 0; i < serviceProviders.length; i++) {
-        const serviceData = serviceProviders[i]
-        
-        console.log(`🚀 API Call ${i + 2}: Setting ${serviceData.service_type} Service Provider`)
-        console.log(`📍 Endpoint: POST https://api.talk2me.ai/service-providers/creators/${creatorId}/services`)
-        console.log("📋 Request Body:", JSON.stringify(serviceData, null, 2))
-        
-        const response = await fetch(`https://api.talk2me.ai/service-providers/creators/${creatorId}/services`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${authToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(serviceData),
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error(`❌ Failed to set ${serviceData.service_type} service provider:`, errorText)
-          throw new Error(`Failed to set ${serviceData.service_type} service provider: ${response.status} - ${errorText}`)
-        }
-
-        const result = await response.json()
-        createdServices.push(result)
-        console.log(`✅ Successfully set ${serviceData.service_type} service provider`)
-      }
-
-      console.log(`✅ All ${createdServices.length} service providers configured successfully`)
-      return createdServices
-    } catch (error) {
-      console.error("❌ Service provider configuration failed:", error)
-      throw error
+    if (!voiceIdToUse) {
+      throw new Error("Missing voice ID. Please select a default voice or create a voice clone.")
     }
-  }
 
-  const createBillingPlan = async (authToken: string, creatorId: number) => {
-    try {
-      // Create both plans regardless of user selection
-      const plans = [
-        {
-          name: "Free Trial",
-          description: "15 free minutes to try your AI twin",
-          plan_type: "FREE",
-          monthly_price: 0,
-          yearly_price: 0,
-          talk_minutes: 15,
-          is_active: true,
-          creator_id: creatorId
-        },
-        {
-          name: "Starter Plan",
-          description: "Perfect for trying out your AI twin",
-          plan_type: "PAID",
-          monthly_price: 4.99,
-          yearly_price: 49.90, // 10 months pricing
-          talk_minutes: 30,
-          is_active: true,
-          creator_id: creatorId
-        }
-      ]
+    const res = await fetch("/api/agents/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: creatorName || "Creator",
+        systemPrompt,
+        greeting: creatorGreeting,
+        voiceId: voiceIdToUse,
+        tags: [category || creatorCategory || "Substack"],
+      }),
+    })
 
-      const createdPlans = []
+    const data = await res.json().catch(() => null)
 
-      // Create each plan with separate API calls
-      for (let i = 0; i < plans.length; i++) {
-        const planData = plans[i]
-        
-        console.log(`🚀 API Call ${i + 5}: Creating ${planData.name}`)
-        console.log("📍 Endpoint: POST https://api.talk2me.ai/plans/")
-        console.log("📋 Request Body:", JSON.stringify(planData, null, 2))
-        
-        const response = await fetch("https://api.talk2me.ai/plans/", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${authToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(planData),
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error(`❌ Failed to create ${planData.name}:`, errorText)
-          throw new Error(`Failed to create ${planData.name}: ${response.status} - ${errorText}`)
-        }
-
-        const result = await response.json()
-        createdPlans.push(result)
-        console.log(`✅ Successfully created ${planData.name}`)
-      }
-
-      console.log(`✅ All ${createdPlans.length} billing plans created successfully`)
-      return createdPlans
-    } catch (error) {
-      console.error("❌ Billing plan creation failed:", error)
-      throw error
+    if (!res.ok) {
+      const detail = data?.error ? JSON.stringify(data.error) : "Unknown error"
+      setDebugInfo(`API Error: ${res.status} - ${detail}`)
+      throw new Error(`Failed to create ElevenLabs agent: ${res.status}`)
     }
+
+    const agentId = String(data?.agentId || data?.raw?.agent_id || "").trim()
+    if (!agentId) throw new Error("Agent created but agent_id missing in response")
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("agentId", agentId)
+      const verificationLink = `${window.location.origin}/dashboard?agentId=${encodeURIComponent(agentId)}`
+      localStorage.setItem("agentLink", verificationLink)
+
+      // Backward-compat keys (no Talk2Me calls rely on these)
+      localStorage.setItem("twinId", agentId)
+      localStorage.setItem("twinAppLink", verificationLink)
+
+      localStorage.setItem(
+        "twinData",
+        JSON.stringify({
+          agentId,
+          verificationLink,
+          raw: data?.raw ?? null,
+        }),
+      )
+    }
+
+    return { agentId, raw: data?.raw }
   }
 
   // --- Launch Twin handler ---
@@ -1019,88 +691,10 @@ export default function Step3() {
         await createVoiceClone()
       }
 
-      // Get Firebase auth
+      // Require login for onboarding, but ElevenLabs Agent creation is server-side.
       if (!user) throw new Error("User not authenticated. Please sign in again.")
-      const authToken = await getToken()
-      if (!authToken) throw new Error("Failed to get Firebase authentication token. Please sign in again.")
 
-      // Register user account first
-      try {
-        console.log("🚀 API Call 0: Registering User Account")
-        console.log("📍 Endpoint: POST https://api.talk2me.ai/users/account")
-        console.log("📋 Request Body:", {
-          name: userName || creatorName,
-          email: userEmail || user.email,
-          phone: userPhone || ""
-        })
-
-        const userRegistrationResponse = await fetch("https://api.talk2me.ai/users/account", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
-          },
-          body: JSON.stringify({
-            name: userName || creatorName,
-            email: userEmail || user.email,
-            phone: userPhone || ""
-          }),
-        })
-
-        if (!userRegistrationResponse.ok) {
-          const errorText = await userRegistrationResponse.text()
-          console.warn("⚠️ User registration failed:", userRegistrationResponse.status, errorText)
-          // Don't throw error - continue with creator creation even if user registration fails
-        } else {
-          const userResult = await userRegistrationResponse.json()
-          console.log("✅ User registered successfully:", userResult)
-        }
-      } catch (userRegError) {
-        console.warn("⚠️ User registration error:", userRegError)
-        // Continue with creator creation even if user registration fails
-      }
-
-      // Create twin on Talk2Me
-      const twinResult = await createTwin(authToken)
-
-      // Extract creator ID for subsequent operations
-      let creatorId = null
-      if (twinResult.creator?.id) creatorId = twinResult.creator.id
-      else if (twinResult.creator_id) creatorId = twinResult.creator_id
-      else if (twinResult.id && !isNaN(Number(twinResult.id))) creatorId = twinResult.id
-
-      if (creatorId) {
-        // Set service providers (LLM, TTS, STT)
-        try {
-          await setNoPublish(authToken, Number(creatorId))
-        } catch (noPublishError) {
-          console.error("⚠️ NoPublish failed:", noPublishError)
-          setError("Twin created, but no publish setup failed. Publish set to true")
-        }
-          
-        try {
-          await setNoVerify(authToken, Number(creatorId))
-        } catch (noVerifyError) {
-          console.error("⚠️ NoPublish failed:", noVerifyError)
-          setError("Twin created, but no verify setup failed. ownership_verified set to true")
-        }
-          
-        // Set service providers (LLM, TTS, STT)
-        try {
-          await setServiceProviders(authToken, Number(creatorId))
-        } catch (serviceError) {
-          console.error("⚠️ Service provider setup failed:", serviceError)
-          setError("Twin created, but service provider setup failed. Default services will be used.")
-        }
-
-        // Create billing plans
-        try {
-          await createBillingPlan(authToken, Number(creatorId))
-        } catch (billingError) {
-          console.error("⚠️ Billing plan creation failed:", billingError)
-          setError("Twin created, but billing plan creation failed. You may need to set up billing manually.")
-        }
-      }
+      await createAgent()
 
       setTimeout(() => {
         router.push("/twin-created")
@@ -1199,7 +793,7 @@ export default function Step3() {
                     <div className="text-center">
                       <p className="text-base font-medium text-gray-300 mb-1">Select Default Voice</p>
                       <p className="text-xs text-gray-500 mb-4">
-                        Choose from ElevenLabs' high-quality pre-made voices
+                        Choose from ElevenLabs&apos; high-quality pre-made voices
                       </p>
 
                       <div className="mb-4">
@@ -1749,7 +1343,7 @@ export default function Step3() {
                     {!voiceDescription && <div>• Voice description has been auto-generated for you</div>}
                   </div>
                   <div className="text-xs text-blue-400 mt-2">
-                    Once you have selected a voice option, you'll be able to launch your twin! ✨
+                    Once you have selected a voice option, you&apos;ll be able to launch your twin! ✨
                   </div>
                 </div>
               )}

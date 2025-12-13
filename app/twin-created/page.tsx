@@ -21,11 +21,10 @@ interface TwinData {
 }
 
 export default function TwinCreated() {
-  const { user, getToken } = useAuth()
+  const { user } = useAuth()
   const [twinData, setTwinData] = useState<TwinData | null>(null)
   const [twinAppLink, setTwinAppLink] = useState<string>("")
   const [twinId, setTwinId] = useState<string>("")
-  const [creatorId, setCreatorId] = useState<string>("")
   const [isVerified, setIsVerified] = useState<boolean>(false)
   const [isVerifying, setIsVerifying] = useState<boolean>(false)
   const [verificationError, setVerificationError] = useState<string>("")
@@ -70,8 +69,9 @@ export default function TwinCreated() {
   useEffect(() => {
     const stored = localStorage.getItem("substackAnalysis")
     const storedTwinData = localStorage.getItem("twinData")
+    const storedAgentId = localStorage.getItem("agentId")
     const storedTwinId = localStorage.getItem("twinId")
-    const storedCreatorId = localStorage.getItem("creatorId")
+    const storedAgentLink = localStorage.getItem("agentLink")
     const storedAppLink = localStorage.getItem("twinAppLink")
 
     if (stored) {
@@ -87,25 +87,21 @@ export default function TwinCreated() {
       }
     }
 
-    if (storedTwinId) {
-      setTwinId(storedTwinId)
-    }
+    const effectiveId = storedAgentId || storedTwinId || ""
+    if (effectiveId) setTwinId(effectiveId)
 
-    if (storedCreatorId) {
-      setCreatorId(storedCreatorId)
-    }
-
-    if (storedAppLink) {
-      setTwinAppLink(storedAppLink)
-      console.log("✅ Using stored app link:", storedAppLink)
-    } else if (storedTwinId && storedTwinId !== "created") {
-      // Generate link if not stored and we have a valid twin ID
-      const generatedLink = `https://app.talk2me.ai/creator/${storedTwinId}/anonymous`
+    const effectiveLink = storedAgentLink || storedAppLink
+    if (effectiveLink) {
+      setTwinAppLink(effectiveLink)
+      console.log("✅ Using stored link:", effectiveLink)
+    } else if (effectiveId) {
+      const generatedLink = `${window.location.origin}/dashboard?agentId=${encodeURIComponent(effectiveId)}`
       setTwinAppLink(generatedLink)
+      localStorage.setItem("agentLink", generatedLink)
       localStorage.setItem("twinAppLink", generatedLink)
-      console.log("🔗 Generated app link from twin ID:", generatedLink)
+      console.log("🔗 Generated link from agent ID:", generatedLink)
     } else {
-      console.warn("⚠️ No valid twin ID found for app link generation")
+      console.warn("⚠️ No valid agent ID found for link generation")
     }
   }, [])
 
@@ -133,11 +129,6 @@ export default function TwinCreated() {
       return
     }
 
-    if (!creatorId) {
-      setVerificationError("Creator ID not found. Please try creating your twin again.")
-      return
-    }
-
     setIsVerifying(true)
     setVerificationError("")
 
@@ -152,7 +143,8 @@ export default function TwinCreated() {
         },
         body: JSON.stringify({
           aboutUrl: aboutUrl,
-          twinId: twinId,
+          agentId: twinId,
+          verificationLink: twinAppLink,
         }),
       })
 
@@ -162,47 +154,8 @@ export default function TwinCreated() {
         // Set verified state
         setIsVerified(true)
         setVerificationError("")
-        
-        
-        // Update ownership_verified to true on Talk2Me API
-        try {
-          const authToken = await getToken()
-          if (!authToken) {
-            console.warn("⚠️ No auth token available for ownership verification update")
-            return
-          }
-
-          console.log("🚀 API Call: Setting ownership_verified and published to true for creator ID:", creatorId)
-          
-          const formData = new FormData()
-          formData.append("ownership_verified", "true")
-          formData.append("published", "true")
-          
-          const verificationUpdateResponse = await fetch(`https://api.talk2me.ai/creators/${creatorId}`, {
-            method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-            body: formData,
-          })
-
-          const responseData = await verificationUpdateResponse.json()
-          console.log("📥 PATCH Response Status:", verificationUpdateResponse.status)
-          console.log("📥 PATCH Response Data:", responseData)
-
-          if (!verificationUpdateResponse.ok) {
-            if (responseData.detail && Array.isArray(responseData.detail)) {
-              console.error("❌ Validation errors:")
-              responseData.detail.forEach((err: any, idx: number) => {
-                console.error(`  ${idx + 1}. ${JSON.stringify(err)}`)
-              })
-            }
-            throw new Error(`Failed to set ownership_verified and published: ${verificationUpdateResponse.statusText}`)
-          }
-          console.log("✅ Successfully set ownership_verified and published to true")
-        } catch (verificationUpdateError) {
-          console.error("⚠️ Failed to update ownership_verified on Talk2Me:", verificationUpdateError)
-          // Don't show this error to user since verification itself succeeded
+        if (typeof window !== "undefined") {
+          localStorage.setItem("ownershipVerified", "true")
         }
       } else {
         setVerificationError(result.error || "Verification failed. Please make sure the Twin ID is in your Substack about page.")
@@ -238,7 +191,7 @@ export default function TwinCreated() {
           </div>
           <h1 className="text-4xl font-bold text-white mb-3">🎉 Your Persona is Ready!</h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            {twinData.author}'s Persona has been successfully created with dynamic system variables
+            {twinData.author}&apos;s Persona has been successfully created with dynamic system variables
           </p>
         </div>
 

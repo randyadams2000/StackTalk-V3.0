@@ -27,8 +27,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     const stored = localStorage.getItem("substackAnalysis")
-    const storedTwinId = localStorage.getItem("twinId")
-    const storedAppLink = localStorage.getItem("twinAppLink")
+    const storedAgentId = localStorage.getItem("agentId") || localStorage.getItem("twinId")
+    const storedAppLink = localStorage.getItem("agentLink") || localStorage.getItem("twinAppLink")
 
     if (stored) {
       try {
@@ -38,19 +38,20 @@ export default function Dashboard() {
       }
     }
 
-    if (storedTwinId) {
-      setTwinId(storedTwinId)
+    if (storedAgentId) {
+      setTwinId(storedAgentId)
     }
 
     if (storedAppLink) {
       setTwinAppLink(storedAppLink)
-      console.log("Dashboard: Using stored app link:", storedAppLink)
-    } else if (storedTwinId && storedTwinId !== "created") {
-      // Generate link if not stored and we have a valid twin ID
-      const generatedLink = `https://app.talk2me.ai/creator/${storedTwinId}`
+      console.log("Dashboard: Using stored link:", storedAppLink)
+    } else if (storedAgentId && storedAgentId !== "created") {
+      // Generate a stable link for verification / sharing
+      const generatedLink = `${window.location.origin}/dashboard?agentId=${encodeURIComponent(storedAgentId)}`
       setTwinAppLink(generatedLink)
+      localStorage.setItem("agentLink", generatedLink)
       localStorage.setItem("twinAppLink", generatedLink)
-      console.log("Dashboard: Generated app link from twin ID:", generatedLink)
+      console.log("Dashboard: Generated link from agent ID:", generatedLink)
     }
   }, [])
 
@@ -77,7 +78,7 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">AI Twin Dashboard</h1>
-          <p className="text-gray-300">Manage your AI twin powered by {substackData.author}'s content</p>
+          <p className="text-gray-300">Manage your AI twin powered by {substackData.author}&apos;s content</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

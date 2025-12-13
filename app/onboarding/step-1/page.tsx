@@ -136,7 +136,7 @@ export default function Step1() {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-3">Connect Your Substack</h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Let's analyze your media content to create your media persona
+            Let&apos;s analyze your media content to create your media persona
           </p>
         </div>
 
