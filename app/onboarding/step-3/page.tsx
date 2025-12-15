@@ -664,6 +664,49 @@ export default function Step3() {
     return { agentId, raw: data?.raw }
   }
 
+  const uploadKnowledgeBase = async (agentId: string) => {
+    if (typeof window === "undefined") return
+
+    let articles: any[] = []
+    let substackUrl = ""
+
+    try {
+      const stored = localStorage.getItem("substackAnalysis")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        articles = Array.isArray(parsed?.articles) ? parsed.articles : []
+        substackUrl = String(parsed?.substackUrl || "").trim()
+      }
+    } catch {}
+
+    if (!articles.length) {
+      throw new Error("No Substack articles found to add to Knowledge Base. Please re-run Step 1.")
+    }
+
+    setDebugInfo("Uploading Substack articles to Knowledge Base…")
+
+    const res = await fetch("/api/agents/knowledge-base", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agentId,
+        creatorName,
+        substackUrl,
+        articles,
+        name: `${creatorName || "Substack"} Articles`,
+      }),
+    })
+
+    const data = await res.json().catch(() => null)
+    if (!res.ok) {
+      const detail = data?.error ? JSON.stringify(data.error) : "Unknown error"
+      setDebugInfo(`Knowledge Base Error: ${res.status} - ${detail}`)
+      throw new Error(`Failed to upload Knowledge Base: ${res.status}`)
+    }
+
+    setDebugInfo("Knowledge Base uploaded.")
+  }
+
   // --- Launch Twin handler ---
   const handleContinue = async () => {
     // Check validation for different voice modes
@@ -694,7 +737,8 @@ export default function Step3() {
       // Require login for onboarding, but ElevenLabs Agent creation is server-side.
       if (!user) throw new Error("User not authenticated. Please sign in again.")
 
-      await createAgent()
+      const created = await createAgent()
+      await uploadKnowledgeBase(created.agentId)
 
       setTimeout(() => {
         router.push("/twin-created")

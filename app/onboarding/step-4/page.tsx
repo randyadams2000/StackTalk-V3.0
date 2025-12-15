@@ -122,6 +122,49 @@ export default function Step4() {
     return { agentId }
   }
 
+  const uploadKnowledgeBase = async (agentId: string) => {
+    if (typeof window === "undefined") return
+
+    let articles: any[] = []
+    let substackUrlFromAnalysis = ""
+
+    try {
+      const stored = localStorage.getItem("substackAnalysis")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        articles = Array.isArray(parsed?.articles) ? parsed.articles : []
+        substackUrlFromAnalysis = String(parsed?.substackUrl || "").trim()
+      }
+    } catch {}
+
+    if (!articles.length) {
+      throw new Error("No Substack articles found to add to Knowledge Base. Please re-run Step 1.")
+    }
+
+    setDebugInfo("Uploading Substack articles to Knowledge Base…")
+
+    const res = await fetch("/api/agents/knowledge-base", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agentId,
+        creatorName,
+        substackUrl: substackUrlFromAnalysis || substackUrl,
+        articles,
+        name: `${creatorName || "Substack"} Articles`,
+      }),
+    })
+
+    const data = await res.json().catch(() => null)
+    if (!res.ok) {
+      const detail = data?.error ? JSON.stringify(data.error) : "Unknown error"
+      setDebugInfo(`Knowledge Base Error: ${res.status} - ${detail}`)
+      throw new Error(`Failed to upload Knowledge Base: ${res.status}`)
+    }
+
+    setDebugInfo("Knowledge Base uploaded.")
+  }
+
   useEffect(() => {
     if (!mounted) return
 
@@ -172,7 +215,8 @@ export default function Step4() {
         console.error("❌ User not authenticated")
         throw new Error("User not authenticated. Please sign in again.")
       }
-      await createAgent()
+      const created = await createAgent()
+      await uploadKnowledgeBase(created.agentId)
 
       setTimeout(() => {
         router.push("/twin-created")

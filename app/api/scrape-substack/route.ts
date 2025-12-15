@@ -5,6 +5,12 @@ interface SubstackData {
   data: {
     author: string
     posts: string[]
+    articles?: {
+      title: string
+      url?: string
+      content?: string
+      publishedAt?: string
+    }[]
     category: string
     rssUrl: string
     substackUrl: string
@@ -175,6 +181,38 @@ function extractImageFromPicture(html: string, baseUrl: string, targetName?: str
   return extractAvatarImg(html, baseUrl, targetName)
 }
 
+function stripHtmlToText(html: string): string {
+  if (!html) return ""
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<br\s*\/?\s*>/gi, "\n")
+    .replace(/<\/?p\b[^>]*>/gi, "\n")
+    .replace(/<\/?div\b[^>]*>/gi, "\n")
+    .replace(/<\/?li\b[^>]*>/gi, "\n- ")
+    .replace(/<\/?h\d\b[^>]*>/gi, "\n")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+\n/g, "\n")
+    .replace(/\n\s+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim()
+}
+
+function firstNonEmpty(...vals: Array<string | undefined | null>): string {
+  for (const v of vals) {
+    const s = (v || "").trim()
+    if (s) return s
+  }
+  return ""
+}
+
 async function fetchProfileImage(cleanUrl: string, targetName?: string): Promise<string | null> {
   const headers = {
     "User-Agent":
@@ -256,6 +294,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch and parse RSS feed
     let posts: string[] = []
+    let articles: { title: string; url?: string; content?: string; publishedAt?: string }[] = []
     let feedTitle = ""
     let feedDescription = ""
     let actualAuthorName = creatorName
@@ -358,6 +397,23 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Extract link and content/description when available (for Knowledge Base ingestion)
+        const linkMatch = itemContent.match(/<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i)
+        const urlFromItem = linkMatch ? linkMatch[1].trim() : ""
+
+        const contentEncodedMatch = itemContent.match(
+          /<content:encoded[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/content:encoded>/i,
+        )
+        const descriptionMatch = itemContent.match(
+          /<description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i,
+        )
+
+        const rawBody = firstNonEmpty(contentEncodedMatch?.[1], descriptionMatch?.[1])
+        const contentText = rawBody ? stripHtmlToText(rawBody) : ""
+
+        const pubDateMatch = itemContent.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i)
+        const publishedAt = pubDateMatch ? pubDateMatch[1].trim() : undefined
+
         if (postTitle) {
           // Clean up HTML entities
           postTitle = postTitle
@@ -374,6 +430,12 @@ export async function POST(request: NextRequest) {
           // Filter out non-post content
           if (isValidPostTitle(postTitle)) {
             posts.push(postTitle)
+            articles.push({
+              title: postTitle,
+              url: urlFromItem || undefined,
+              content: contentText || undefined,
+              publishedAt,
+            })
             console.log("✅ Added post:", postTitle)
           }
         }
@@ -449,6 +511,7 @@ export async function POST(request: NextRequest) {
       data: {
         author: actualAuthorName,
         posts: posts.slice(0, 10),
+        articles: articles.slice(0, 10),
         category: category,
         rssUrl: rssUrl,
         substackUrl: cleanUrl,
