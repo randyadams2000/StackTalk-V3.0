@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 function getElevenLabsApiKey(): string | undefined {
-  return process.env.ELEVEN_API_KEY || process.env.NEXT_PUBLIC_ELEVEN_API_KEY
+  return process.env.ELEVEN_API_KEY
 }
 
 type IncomingArticle = {
@@ -9,6 +9,15 @@ type IncomingArticle = {
   url?: string
   content?: string
   publishedAt?: string
+}
+
+type UrlDocResult = {
+  url: string
+  name?: string
+  created?: unknown
+  attached?: unknown
+  error?: unknown
+  status?: number
 }
 
 function clampText(input: string, maxChars: number): string {
@@ -74,20 +83,108 @@ export async function POST(req: NextRequest) {
     if (!articles.length)
       return NextResponse.json({ success: false, error: "Missing articles" }, { status: 400 })
 
+    const maxDocs = Math.max(1, Math.min(10, Number(body?.maxDocs || 10)))
+    const docs = articles
+      .map((a) => ({
+        title: String(a?.title || "").trim(),
+        url: String(a?.url || "").trim(),
+      }))
+      .filter((a) => a.url && /^https?:\/\//i.test(a.url))
+      .slice(0, maxDocs)
+
+    // Preferred path: create from URL (scrape) and attach each doc to the agent.
+    if (docs.length) {
+      const results: UrlDocResult[] = []
+
+      for (const d of docs) {
+        const name = d.title || `${creatorName || "Substack"} post`
+        const entry: UrlDocResult = { url: d.url, name }
+
+        // 1) Create the KB doc from URL (scrape)
+        try {
+          const createRes = await fetch("https://api.elevenlabs.io/v1/convai/knowledge-base/url", {
+            method: "POST",
+            headers: {
+              "xi-api-key": apiKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ url: d.url, name }),
+          })
+
+          const createText = await createRes.text()
+          let createData: unknown = null
+          try {
+            createData = createText ? JSON.parse(createText) : null
+          } catch {
+            createData = createText
+          }
+
+          entry.created = createData
+          if (!createRes.ok) {
+            entry.status = createRes.status
+            entry.error = createData
+            results.push(entry)
+            continue
+          }
+        } catch (e) {
+          entry.error = e instanceof Error ? e.message : "Unknown error"
+          results.push(entry)
+          continue
+        }
+
+        // 2) Attach the URL doc to the agent's KB
+        try {
+          const form = new FormData()
+          form.append("name", name)
+          form.append("url", d.url)
+
+          const attachUrl = `https://api.elevenlabs.io/v1/convai/knowledge-base?agent_id=${encodeURIComponent(agentId)}`
+          const attachRes = await fetch(attachUrl, {
+            method: "POST",
+            headers: { "xi-api-key": apiKey },
+            body: form,
+          })
+
+          const attachText = await attachRes.text()
+          let attachData: unknown = null
+          try {
+            attachData = attachText ? JSON.parse(attachText) : null
+          } catch {
+            attachData = attachText
+          }
+
+          entry.attached = attachData
+          if (!attachRes.ok) {
+            entry.status = attachRes.status
+            entry.error = attachData
+          }
+        } catch (e) {
+          entry.error = e instanceof Error ? e.message : "Unknown error"
+        }
+
+        results.push(entry)
+      }
+
+      const attachedCount = results.filter((r) => r.attached && !r.error).length
+      const hadErrors = results.some((r) => r.error)
+      return NextResponse.json({
+        success: !hadErrors,
+        attachedCount,
+        results,
+      })
+    }
+
+    // Fallback: upload a single synthesized text file if URLs are missing.
     const docName = String(body?.name || `${creatorName || "Substack"} Articles`).trim() || "Substack Articles"
     const text = buildKnowledgeBaseText({ creatorName, substackUrl, articles })
-
     const form = new FormData()
     form.append("name", docName)
     form.append("file", new Blob([text], { type: "text/plain" }), "substack-articles.txt")
 
-    const url = `https://api.elevenlabs.io/v1/convai/knowledge-base?agent_id=${encodeURIComponent(agentId)}`
-
-    const res = await fetch(url, {
+    const attachUrl = `https://api.elevenlabs.io/v1/convai/knowledge-base?agent_id=${encodeURIComponent(agentId)}`
+    const res = await fetch(attachUrl, {
       method: "POST",
-      headers: {
-        "xi-api-key": apiKey,
-      },
+      headers: { "xi-api-key": apiKey },
       body: form,
     })
 
@@ -110,7 +207,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ success: true, raw: data })
+    return NextResponse.json({ success: true, raw: data, fallback: true })
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error"
     return NextResponse.json({ success: false, error: message }, { status: 500 })

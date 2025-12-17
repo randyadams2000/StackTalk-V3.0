@@ -683,7 +683,7 @@ export default function Step3() {
       throw new Error("No Substack articles found to add to Knowledge Base. Please re-run Step 1.")
     }
 
-    setDebugInfo("Uploading Substack articles to Knowledge Base…")
+    setDebugInfo("Uploading Substack posts to Knowledge Base (from URLs)…")
 
     const res = await fetch("/api/agents/knowledge-base", {
       method: "POST",
@@ -694,6 +694,7 @@ export default function Step3() {
         substackUrl,
         articles,
         name: `${creatorName || "Substack"} Articles`,
+        maxDocs: 10,
       }),
     })
 
@@ -704,7 +705,12 @@ export default function Step3() {
       throw new Error(`Failed to upload Knowledge Base: ${res.status}`)
     }
 
-    setDebugInfo("Knowledge Base uploaded.")
+    const attachedCount = Number(data?.attachedCount || 0)
+    if (attachedCount > 0) {
+      setDebugInfo(`Knowledge Base loaded with ${attachedCount} posts.`)
+    } else {
+      setDebugInfo("Knowledge Base uploaded, but no URLs were attached.")
+    }
   }
 
   // --- Launch Twin handler ---

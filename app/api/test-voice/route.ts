@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Check if ElevenLabs API key is available
-    const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVEN_API_KEY
+    const elevenLabsApiKey = process.env.ELEVEN_API_KEY
     if (!elevenLabsApiKey) {
       console.warn("⚠️ ElevenLabs API key not found, using mock response")
 

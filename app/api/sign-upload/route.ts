@@ -7,45 +7,36 @@ export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
   try {
-    const { filename, contentType } = await request.json()
+    const body = await request.json().catch(() => null)
+    const filename = body?.filename
+    const contentType = body?.contentType
 
-  const bucket = process.env.NEXT_PUBLIC_S3_BUCKET_NAME
-  const region = process.env.NEXT_PUBLIC_AWS_REGION || "us-east-1"
-  const accessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID
-  const secretAccessKey = process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY
+    const bucket = process.env.S3_BUCKET_NAME
+    const region = process.env.AWS_REGION || "us-east-1"
 
-  const hasExplicitCreds = Boolean(accessKeyId && secretAccessKey)
+    // Prefer server-side AWS credentials. If not provided, allow the default provider chain
+    // (IAM role, web identity, etc.) for hosted environments.
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
+    const sessionToken = process.env.AWS_SESSION_TOKEN
+    const hasExplicitCreds = Boolean(accessKeyId && secretAccessKey)
 
-    // Debug logging
-    console.log("🔍 S3 Config Debug:", {
-      bucket: bucket ? "SET" : "MISSING",
-      region: region ? "SET" : "MISSING", 
-      accessKeyId: accessKeyId ? "SET" : "MISSING",
-      secretAccessKey: secretAccessKey ? "SET" : "MISSING",
-  hasExplicitCreds,
-  usingDefaultProvider: hasExplicitCreds ? false : true,
-      filename,
-      contentType,
-      // Show actual values to debug (remove in production)
-      actualValues: {
-        bucket,
-        region,
-        accessKeyId: accessKeyId ? `${accessKeyId.substring(0, 4)}...` : "MISSING",
-        secretAccessKey: secretAccessKey ? `${secretAccessKey.substring(0, 4)}...` : "MISSING"
-      },
-      // Show all environment variables to see what's actually loaded
-      allEnvVars: {
-        NEXT_PUBLIC_S3_BUCKET_NAME: process.env.NEXT_PUBLIC_S3_BUCKET_NAME ? "SET" : "MISSING",
-        NEXT_PUBLIC_AWS_REGION: process.env.NEXT_PUBLIC_AWS_REGION ? "SET" : "MISSING",
-        NEXT_PUBLIC_AWS_ACCESS_KEY_ID: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID ? "SET" : "MISSING",
-        NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY ? "SET" : "MISSING"
-      }
+    console.log("🔍 S3 presign config:", {
+      bucketSet: Boolean(bucket),
+      region,
+      credentialSource: hasExplicitCreds ? "env" : "default-provider",
+      filename: typeof filename === "string" ? filename : undefined,
+      contentType: typeof contentType === "string" ? contentType : undefined,
     })
 
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ success: false, error: "Invalid JSON body" }, { status: 400 })
+    }
+
     if (!bucket) {
-      console.error("❌ Missing NEXT_PUBLIC_S3_BUCKET_NAME")
+      console.error("❌ Missing S3 bucket configuration")
       return NextResponse.json(
-        { success: false, error: "Missing NEXT_PUBLIC_S3_BUCKET_NAME environment variable" },
+        { success: false, error: "S3 is not configured. Missing S3_BUCKET_NAME." },
         { status: 500 },
       )
     }
@@ -53,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (!region) {
       console.error("❌ Missing AWS region configuration")
       return NextResponse.json(
-        { success: false, error: "Missing AWS region configuration (NEXT_PUBLIC_AWS_REGION)" },
+        { success: false, error: "S3 is not configured. Missing AWS_REGION." },
         { status: 500 },
       )
     }
@@ -63,26 +54,29 @@ export async function POST(request: NextRequest) {
       // When explicit credentials are not provided we fall back to the default credential
       // provider chain (IAM role, web identity, etc.) so Amplify hosted environments work
       // without storing long-lived keys.
-      credentials: hasExplicitCreds ? { accessKeyId: accessKeyId!, secretAccessKey: secretAccessKey! } : undefined,
+      credentials: hasExplicitCreds
+        ? { accessKeyId: accessKeyId!, secretAccessKey: secretAccessKey!, sessionToken }
+        : undefined,
     })
 
-    const safeName = (filename || "upload.dat").replace(/[^a-zA-Z0-9_.-]/g, "_")
+    const safeName = (typeof filename === "string" && filename ? filename : "upload.dat").replace(
+      /[^a-zA-Z0-9_.-]/g,
+      "_",
+    )
     const key = `${randomUUID()}-${safeName}` // bucket root
 
     console.log("📁 Creating S3 command:", { bucket, key, safeName })
 
     // Build command with the content type we expect the client to use on PUT
-    const expectedContentType = contentType || "application/octet-stream"
-    // Enhanced security: Set CORS headers to restrict which domains can use presigned URLs
+    const expectedContentType = typeof contentType === "string" && contentType ? contentType : "application/octet-stream"
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
       ContentType: expectedContentType,
-      // Add security headers
       Metadata: {
-        'uploaded-by': 'stacktalk-app',
-        'upload-timestamp': new Date().toISOString()
-      }
+        "uploaded-by": "stacktalk-app",
+        "upload-timestamp": new Date().toISOString(),
+      },
     })
 
     console.log("🔗 Generating presigned URL...")
@@ -107,6 +101,18 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("❌ sign-upload error:", error)
     const err = error as any
+
+    const hints: string[] = []
+    if (!process.env.S3_BUCKET_NAME) {
+      hints.push("Missing S3_BUCKET_NAME")
+    }
+    if (!process.env.AWS_REGION) {
+      hints.push("Missing AWS_REGION")
+    }
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+      hints.push("Missing AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY (or use an IAM role)")
+    }
+
     return NextResponse.json(
       {
         success: false,
@@ -114,8 +120,7 @@ export async function POST(request: NextRequest) {
         message: err?.message || "Unknown error",
         name: err?.name,
         code: err?.code || err?.$metadata?.httpStatusCode,
-        // Stack helps in logs; not sensitive
-        stack: err?.stack,
+        hint: hints.length ? hints.join("; ") : undefined,
       },
       { status: 500 },
     )
