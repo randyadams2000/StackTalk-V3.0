@@ -10,7 +10,16 @@ function ensurePacificTimePrompt(systemPrompt: string): string {
 }
 
 function getElevenLabsApiKey(): string | undefined {
-  return process.env.ELEVEN_API_KEY
+  const candidates = [
+    process.env.ELEVEN_API_KEY,
+    process.env.ELEVENLABS_API_KEY,
+    process.env.ELEVEN_LABS_API_KEY,
+  ]
+  for (const value of candidates) {
+    const trimmed = typeof value === "string" ? value.trim() : ""
+    if (trimmed) return trimmed
+  }
+  return undefined
 }
 
 function getOptionalEnv(name: string): string | undefined {
@@ -287,7 +296,11 @@ export async function POST(req: NextRequest) {
     const apiKey = getElevenLabsApiKey()
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, error: "Missing ElevenLabs API key (set ELEVEN_API_KEY)." },
+        {
+          success: false,
+          error:
+            "Missing ElevenLabs API key. Set ELEVEN_API_KEY (or ELEVENLABS_API_KEY / ELEVEN_LABS_API_KEY) in your deployment environment.",
+        },
         { status: 500 },
       )
     }
