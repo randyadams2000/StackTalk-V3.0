@@ -1,5 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+function ensurePacificTimePrompt(systemPrompt: string): string {
+  const prompt = String(systemPrompt ?? "")
+  const normalized = prompt.toLowerCase()
+  if (normalized.includes("america/los_angeles") || normalized.includes("pacific time")) return prompt
+
+  const prefix = "TIMEZONE\nLocal time zone: America/Los_Angeles (Pacific Time, US).\n\n"
+  return `${prefix}${prompt}`
+}
+
 function getElevenLabsApiKey(): string | undefined {
   return process.env.ELEVEN_API_KEY
 }
@@ -109,6 +118,40 @@ async function buildDefaultTools(req: NextRequest, apiKey: string): Promise<any[
             },
           },
         },
+        content_type: "application/json",
+        auth_connection: null,
+      },
+    },
+    {
+      type: "webhook",
+      name: "GetTime",
+      description:
+        "Get the current time (America/Los_Angeles) and assign it to {{current_time}}. Call this at the start of the conversation.",
+      response_timeout_secs: 10,
+      disable_interruptions: false,
+      force_pre_tool_speech: false,
+      assignments: [
+        {
+          source: "response",
+          dynamic_variable: "current_time",
+          value_path: "datetime",
+        },
+      ],
+      tool_call_sound: null,
+      tool_call_sound_behavior: "auto",
+      dynamic_variables: {
+        dynamic_variable_placeholders: {},
+      },
+      execution_mode: "immediate",
+      api_schema: {
+        request_headers: {
+          Accept: "application/json",
+        },
+        url: "https://worldtimeapi.org/api/timezone/America/Los_Angeles",
+        method: "GET",
+        path_params_schema: {},
+        query_params_schema: null,
+        request_body_schema: null,
         content_type: "application/json",
         auth_connection: null,
       },
@@ -261,6 +304,7 @@ export async function POST(req: NextRequest) {
     if (!voiceId) return NextResponse.json({ success: false, error: "Missing voiceId" }, { status: 400 })
 
     const tools = await buildDefaultTools(req, apiKey)
+    const effectiveSystemPrompt = systemPrompt ? ensurePacificTimePrompt(systemPrompt) : ""
 
     // ElevenLabs ConvAI expects a fairly rich `conversation_config` schema.
     // We mirror the shape returned by GET /v1/convai/agents/{agent_id} to avoid schema-related 5xx/422s.
@@ -322,7 +366,7 @@ export async function POST(req: NextRequest) {
           },
           disable_first_message_interruptions: false,
           prompt: {
-            ...(systemPrompt ? { prompt: systemPrompt } : {}),
+            ...(effectiveSystemPrompt ? { prompt: effectiveSystemPrompt } : {}),
             tools,
           },
         },

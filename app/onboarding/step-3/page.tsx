@@ -38,6 +38,7 @@ export default function Step3() {
   const [launching, setLaunching] = useState(false)
   const [error, setError] = useState<string>("")
   const [debugInfo, setDebugInfo] = useState<string>("")
+  const [launchStatus, setLaunchStatus] = useState<string>("")
   const [deletingVoice, setDeletingVoice] = useState(false)
   const { user } = useAuth()
   const router = useRouter()
@@ -300,6 +301,9 @@ export default function Step3() {
     setVoiceCloneSuccess(false)
 
     try {
+      if (launching) {
+        setLaunchStatus("Creating voice clone…")
+      }
       let usedPresigned = false
       let response: Response | null = null
       let presignError: string | null = null
@@ -600,6 +604,10 @@ export default function Step3() {
     setError("")
     setDebugInfo("")
 
+    if (launching) {
+      setLaunchStatus("Creating agent…")
+    }
+
     let voiceIdToUse = ""
     const storedVoiceId = typeof window !== "undefined" ? localStorage.getItem("voiceCloneId") : null
     const backupContinueVoiceId =
@@ -698,6 +706,9 @@ export default function Step3() {
     }
 
     setDebugInfo("Uploading Substack posts to Knowledge Base (from URLs)…")
+    if (launching) {
+      setLaunchStatus("Uploading posts to Knowledge Base…")
+    }
 
     const res = await fetch("/api/agents/knowledge-base", {
       method: "POST",
@@ -747,6 +758,9 @@ export default function Step3() {
     setError("")
     setDebugInfo("")
 
+    // Launch progress UI
+    setLaunchStatus("Starting…")
+
     try {
       // For default voices, ensure voiceCloneId is set
       if (useDefaultVoice && !voiceCloneId) {
@@ -764,8 +778,14 @@ export default function Step3() {
       // Require login for onboarding, but ElevenLabs Agent creation is server-side.
       if (!user) throw new Error("User not authenticated. Please sign in again.")
 
+      setLaunchStatus("Creating agent…")
       const created = await createAgent()
+
+      setLaunchStatus("Uploading + indexing Knowledge Base…")
       await uploadKnowledgeBase(created.agentId)
+
+      setLaunchStatus("Finalizing…")
+      setLaunchStatus("Done. Redirecting…")
 
       setTimeout(() => {
         router.push("/twin-created")
@@ -774,6 +794,7 @@ export default function Step3() {
       setLaunching(false)
       const errorMessage = err instanceof Error ? err.message : "Unknown error occurred"
       setError(errorMessage)
+      setLaunchStatus("Failed")
       if (errorMessage.includes("authentication") || errorMessage.includes("token")) {
         setTimeout(() => {
           router.push("/")
@@ -1389,10 +1410,7 @@ export default function Step3() {
               {/* Success/Loading Display */}
               {launching && !error && (
                 <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-700">
-                  <div className="text-blue-300 font-medium mb-2">🚀 Launching Your Twin...</div>
-                  <div className="text-sm text-blue-200">
-                    {voiceCloneSuccess ? "Creating your twin with voice clone..." : "Processing voice and creating twin..."}
-                  </div>
+                  <div className="text-sm text-blue-200">{launchStatus || "Working…"}</div>
                 </div>
               )}
 

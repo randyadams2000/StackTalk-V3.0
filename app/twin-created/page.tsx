@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, MessageSquare, ExternalLink, Copy, Globe, Shield, AlertCircle } from "lucide-react"
+import { CheckCircle, ExternalLink, Copy, Shield, AlertCircle } from "lucide-react"
 import { useAuth } from "@/components/auth/auth-provider"
 
 interface TwinData {
@@ -26,6 +26,7 @@ export default function TwinCreated() {
   const [twinData, setTwinData] = useState<TwinData | null>(null)
   const [twinAppLink, setTwinAppLink] = useState<string>("")
   const [twinId, setTwinId] = useState<string>("")
+  const [publicPersonaLink, setPublicPersonaLink] = useState<string>("")
   const [isVerified, setIsVerified] = useState<boolean>(false)
   const [isVerifying, setIsVerifying] = useState<boolean>(false)
   const [verificationError, setVerificationError] = useState<string>("")
@@ -106,18 +107,19 @@ export default function TwinCreated() {
     }
   }, [])
 
-  const handleTestVoiceBot = () => {
+  useEffect(() => {
+    if (typeof window === "undefined") return
     const agentId = String(twinId || "").trim()
     if (!agentId) return
 
     const creatorName =
-      (typeof window !== "undefined" ? localStorage.getItem("creatorName") : "") ||
+      localStorage.getItem("creatorName") ||
       twinData?.variables?.CREATOR_NAME ||
       twinData?.author ||
       ""
 
-    const storedUrl = typeof window !== "undefined" ? localStorage.getItem("profilePictureUrl") || "" : ""
-    const storedPreview = typeof window !== "undefined" ? localStorage.getItem("profilePicturePreview") || "" : ""
+    const storedUrl = localStorage.getItem("profilePictureUrl") || ""
+    const storedPreview = localStorage.getItem("profilePicturePreview") || ""
     const imageUrl =
       (storedUrl && /^https?:\/\//i.test(storedUrl) ? storedUrl : "") ||
       (storedPreview && /^https?:\/\//i.test(storedPreview) ? storedPreview : "") ||
@@ -129,14 +131,18 @@ export default function TwinCreated() {
       creatorName,
     )}&image=${encodeURIComponent(imageUrl)}&agent=${encodeURIComponent(agentId)}`
 
-    // Open in the same window/tab
-    window.location.href = targetUrl
+    setPublicPersonaLink(targetUrl)
+  }, [twinId, twinData])
+
+  const handleTestVoiceBot = () => {
+    if (!publicPersonaLink) return
+    window.location.href = publicPersonaLink
   }
 
   const handleCopyTwinId = async () => {
-    if (twinId) {
+    if (publicPersonaLink) {
       try {
-        await navigator.clipboard.writeText(twinAppLink)
+        await navigator.clipboard.writeText(publicPersonaLink)
         console.log("Persona ID copied to clipboard")
       } catch (error) {
         console.error("Failed to copy twin ID:", error)
@@ -165,7 +171,7 @@ export default function TwinCreated() {
         body: JSON.stringify({
           aboutUrl: aboutUrl,
           agentId: twinId,
-          verificationLink: twinAppLink,
+          verificationLink: publicPersonaLink || twinAppLink,
         }),
       })
 
@@ -218,16 +224,7 @@ export default function TwinCreated() {
 
         {/* Test VoiceBot Section */}
         <Card className="mb-8 shadow-lg border-blue-600/30 bg-black">
-          <CardHeader className="bg-blue-900/20">
-            <CardTitle className="flex items-center gap-2 text-blue-400">
-              <MessageSquare className="h-5 w-5" />
-              Your Persona is Ready!
-            </CardTitle>
-            <CardDescription className="text-blue-300">
-              Test your Persona and see how it responds to questions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
+          <CardContent className="py-6">
             <div className="text-center">
               <Button 
                 onClick={handleTestVoiceBot} 
@@ -253,26 +250,21 @@ export default function TwinCreated() {
               Publish your StackTalk and allow others to use it
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-6">
-            <div className="bg-orange-900/20 rounded-lg p-4 border border-orange-600/30 mb-6">
+          <CardContent className="pt-4">
+            <div className="bg-orange-900/20 rounded-lg p-3 border border-orange-600/30 mb-3">
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-orange-200">
-                  <p className="font-medium mb-2">Verification Required</p>
-                  <p>In order to verify your ownership of this substack page, please edit your profile, and add the URL below somewhere on your about page (can be temporary for validation) then click the Verify Ownership button below.                    
-                  </p>
+                  Add the link to your About page (temporary is fine), then click Verify Ownership.
                 </div>
               </div>
             </div>
 
             {/* Twin ID Display */}
-            <div className="bg-black rounded-lg p-4 border mb-4">
+            <div className="bg-black rounded-lg p-3 border mb-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="text-sm text-gray-300 mb-1">Add this link (can be tremporary) somewhere on you about page and click the button below..</div>
-                  <div className="font-mono text-lg text-gray-900 bg-gray-100 px-3 py-2 rounded border">
-                    {twinAppLink}
-                  </div>
+                  <div className="text-sm text-gray-300">Add this link (can be tremporary) somewhere on your about page.</div>
                 </div>
                 <Button onClick={handleCopyTwinId} variant="outline" className="ml-4">
                   <Copy className="h-4 w-4 mr-2" />
@@ -281,24 +273,9 @@ export default function TwinCreated() {
               </div>
             </div>
 
-            {/* Substack About Page Link */}
-            {substackUrl && (
-              <div className="mb-4">
-                <p className="text-sm text-gray-300 mb-2">Your Substack about page:</p>
-                <a 
-                  href={`${substackUrl}/about`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 underline text-sm"
-                >
-                  {substackUrl}/about
-                </a>
-              </div>
-            )}
-
             {/* Verification Status */}
             {isVerified ? (
-              <div className="bg-green-900/20 rounded-lg p-4 border border-green-600/30 mb-4">
+              <div className="bg-green-900/20 rounded-lg p-3 border border-green-600/30 mb-3">
                 <div className="flex items-center gap-3">
                   <CheckCircle className="h-5 w-5 text-green-400" />
                   <div className="text-green-200">
@@ -313,7 +290,7 @@ export default function TwinCreated() {
                   onClick={verifySubstackOwnership}
                   disabled={isVerifying}
                   className="bg-purple-600 hover:bg-purple-700"
-                  size="lg"
+                  size="default"
                 >
                   {isVerifying ? (
                     <>

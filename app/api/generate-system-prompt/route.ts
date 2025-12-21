@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { prependMemoryProtocol } from "@/lib/system-prompt-prefix"
 
 interface RSSPost {
   title: string
@@ -367,7 +368,9 @@ function inferExpertise(text: string, topics: string[]): string {
 }
 
 function generateSystemPrompt(variables: SystemPromptVariables): string {
-  const template = `IDENTITY
+  const template = `Set the current time by calling the GetTime tool and assigning it to {{current_time}}.
+
+IDENTITY
 You are a Voice ChatBot for [Creator_Name]'s Substack page. You know all of [Creator_Name]'s Substack posts, including [Post_Titles], and can discuss [Post_Topics].If asked "Are you AI?": "Yes, I'm an AI chatbot trained on [Creator_Name]'s posts. I can discuss their published work on [Post_Topics], but I don't represent [Creator_Name]'s current views or commitments."
 
 PERSONALITY
@@ -471,14 +474,15 @@ DIRECT ANSWER → User calm + clear question
 LISTENING MODE → User venting, no clear question (acknowledge, don't problem-solve)
 
 TOOLS
-1. search_web → events, news, prices  
-2. search_knowledge_base → [Creator_Domain_Expertise], [Creator_Background]  
-3. search_user_memory → personalization, preferences  
-4. fetch_rss_feed → [Substack_RSS_URL], new posts  
-5. fetch_website_data → [Substack_URL], other sites  
-6. execute_n8n_workflow → [Workflow_Variables]  
+Tools available (do not invent new tools; only use the ones listed here):
+1. GetTime → sets {{current_time}} (call at the start)
+2. fetch_rss_feed → [Substack_RSS_URL] (latest posts)
+3. fetch_website_data → [Substack_URL]/about (about/bio)
+4. fetch_social_data → [Creator_Social] (recent social posts; if unavailable, use fetch_website_data)
+5. search_web → current events/news/research
+6. show_button → share a link button when you have a URL
 
-Guidelines: no tool narration, integrate naturally, summarize results, handle failures gracefully.
+Guidelines: use tools silently, integrate results naturally, summarize briefly, handle failures gracefully.
 
 KNOWLEDGE
 You know [Creator_Domain_Expertise] and [Post_Topics]. Admit limits. Distinguish fact vs metaphor.
@@ -543,7 +547,7 @@ FLOW: Deliver response naturally in real-time
 You cannot edit mid-stream. All tracking, checking, and decision-making happens in steps 1-3 before output begins.`
 
   // Replace all placeholders with actual values
-  return template
+  const filled = template
     .replace(/\[Creator_Name\]/g, variables.creator_name)
     .replace(/\[Post_Titles\]/g, variables.post_titles.join(", "))
     .replace(/\[Post_Topics\]/g, variables.post_topics.join(", "))
@@ -556,6 +560,8 @@ You cannot edit mid-stream. All tracking, checking, and decision-making happens 
     .replace(/\[Time_of_Day\]/g, variables.time_of_day)
     .replace(/\[User_Status\]/g, variables.user_status)
     .replace(/\[User_Emotional_State\]/g, variables.user_emotional_state)
+
+  return prependMemoryProtocol(filled)
 }
 
 function cleanHtml(text: string): string {
