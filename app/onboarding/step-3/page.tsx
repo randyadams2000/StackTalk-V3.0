@@ -365,10 +365,24 @@ export default function Step3() {
       } catch (e) {
         presignError = e instanceof Error ? e.message : String(e)
         console.warn("⚠️ Presigned upload path failed, falling back to direct upload:", presignError)
-        // Surface to the UI so production users know why large uploads might fail
-        setVoiceCloneError(
-          `Secure upload temporarily unavailable (${presignError}). Falling back to direct upload (max 5MB).`
-        )
+        const sizeMB = audioBlob.size / (1024 * 1024)
+        // For small files, this is non-fatal because we fall back to direct upload.
+        // For larger files, secure upload is required.
+        if (sizeMB <= 5) {
+          setDebugInfo(`Secure upload unavailable (${presignError}). Using direct upload fallback...`)
+        } else {
+          setVoiceCloneError(`Secure upload unavailable (${presignError}).`)
+        }
+
+        // Direct upload is only meant as a small-file fallback.
+        // If the sample is larger, fail early with actionable guidance.
+        if (sizeMB > 5) {
+          throw new Error(
+            `Secure upload failed and this audio is ${sizeMB.toFixed(2)}MB. ` +
+              `Direct upload is only supported up to ~5MB. ` +
+              `Fix S3 access (bucket CORS + server GetObject permission), or upload a shorter/compressed sample.`
+          )
+        }
       }
 
       if (!response) {
@@ -695,22 +709,29 @@ export default function Step3() {
         articles,
         name: `${creatorName || "Substack"} Articles`,
         maxDocs: 10,
+        kbMode: "file",
       }),
     })
 
     const data = await res.json().catch(() => null)
     if (!res.ok) {
-      const detail = data?.error ? JSON.stringify(data.error) : "Unknown error"
-      setDebugInfo(`Knowledge Base Error: ${res.status} - ${detail}`)
+      const detail = data ? JSON.stringify(data, null, 2) : "(no response body)"
+      setDebugInfo(`Knowledge Base Error: ${res.status}\n${detail}`)
       throw new Error(`Failed to upload Knowledge Base: ${res.status}`)
     }
 
     const attachedCount = Number(data?.attachedCount || 0)
-    if (attachedCount > 0) {
-      setDebugInfo(`Knowledge Base loaded with ${attachedCount} posts.`)
-    } else {
-      setDebugInfo("Knowledge Base uploaded, but no URLs were attached.")
+    const apiSuccess = Boolean(data?.success)
+    if (!apiSuccess || attachedCount === 0) {
+      const firstErr = Array.isArray(data?.results)
+        ? data.results.find((r: any) => r?.error)?.error
+        : null
+      const detail = firstErr ? JSON.stringify(firstErr) : (data?.error ? JSON.stringify(data.error) : "No URLs attached")
+      setDebugInfo(`Knowledge Base upload did not attach any URLs. Detail: ${detail}`)
+      throw new Error("Knowledge Base upload failed to attach posts")
     }
+
+    setDebugInfo(`Knowledge Base loaded with ${attachedCount} posts.`)
   }
 
   // --- Launch Twin handler ---

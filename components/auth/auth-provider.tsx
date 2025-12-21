@@ -42,8 +42,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(user)
           setLoading(false)
         })
+
+        // If we couldn't attach a listener (common when Firebase env/config is missing),
+        // don't leave the entire app stuck in a loading spinner.
+        if (!unsubscribe) {
+          console.warn("Firebase auth listener unavailable; continuing in logged-out mode")
+          setUser(null)
+          setLoading(false)
+        }
       } catch (error) {
         console.error("Error setting up auth listener:", error)
+        setUser(null)
         setLoading(false)
       }
     }

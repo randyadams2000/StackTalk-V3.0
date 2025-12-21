@@ -73,13 +73,14 @@ export async function POST(request: NextRequest) {
       }
 
       const bucket = process.env.S3_BUCKET_NAME
-      const region = process.env.AWS_REGION
-      const accessKeyId = process.env.AWS_ACCESS_KEY_ID
-      const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
-      const sessionToken = process.env.AWS_SESSION_TOKEN
+      const region = process.env.APP_REGION || "us-east-1"
+      const accessKeyId = process.env.APP_ACCESS_KEY
+      const secretAccessKey =
+        process.env.APP_SECRET_ACCESS_KEY
+      const sessionToken = process.env.APP_SESSION_TOKEN
       if (!bucket || !region) {
         return NextResponse.json(
-          { success: false, error: "S3 is not configured. Missing S3_BUCKET_NAME / AWS_REGION." },
+          { success: false, error: "S3 is not configured. Missing S3_BUCKET_NAME / APP_REGION." },
           { status: 500 },
         )
       }
@@ -91,7 +92,45 @@ export async function POST(request: NextRequest) {
             ? { accessKeyId, secretAccessKey, sessionToken }
             : undefined,
       })
-      const getRes = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: s3Key }))
+      let getRes: any
+      try {
+        getRes = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: s3Key }))
+      } catch (err) {
+        const e: any = err
+        const name = e?.name || e?.Code || e?.code
+        const message = e?.message || "Failed to fetch object from S3"
+        const httpStatus = e?.$metadata?.httpStatusCode
+        const requestId = e?.$metadata?.requestId
+
+        // Common causes:
+        // - CORS blocks the browser PUT so the object never uploads (NoSuchKey here)
+        // - IAM allows PutObject but not GetObject (AccessDenied here)
+        const hintParts: string[] = []
+        if (name === "NoSuchKey" || name === "NotFound") {
+          hintParts.push("Object not found. The browser upload may have failed (often due to S3 CORS).")
+        }
+        if (name === "AccessDenied") {
+          hintParts.push("Access denied. Ensure the AWS credentials used by the server have s3:GetObject permission for this bucket/key.")
+        }
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Failed to read uploaded audio from S3",
+            s3: {
+              bucket,
+              key: s3Key,
+              region,
+              name,
+              message,
+              httpStatus,
+              requestId,
+            },
+            hint: hintParts.length ? hintParts.join(" ") : undefined,
+          },
+          { status: 502 },
+        )
+      }
 
       // Convert stream to Uint8Array
       const parts: Uint8Array[] = []

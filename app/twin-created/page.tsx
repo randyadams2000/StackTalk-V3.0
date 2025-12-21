@@ -17,6 +17,7 @@ interface TwinData {
     CREATOR_NAME: string
     CREATOR_WEBSITE?: string
     CREATOR_SOCIAL?: string
+    CREATOR_IMAGE?: string
   }
 }
 
@@ -106,10 +107,30 @@ export default function TwinCreated() {
   }, [])
 
   const handleTestVoiceBot = () => {
-    if (twinAppLink) {
-      // Open in the same tab instead of a new tab
-      window.location.href = twinAppLink
-    }
+    const agentId = String(twinId || "").trim()
+    if (!agentId) return
+
+    const creatorName =
+      (typeof window !== "undefined" ? localStorage.getItem("creatorName") : "") ||
+      twinData?.variables?.CREATOR_NAME ||
+      twinData?.author ||
+      ""
+
+    const storedUrl = typeof window !== "undefined" ? localStorage.getItem("profilePictureUrl") || "" : ""
+    const storedPreview = typeof window !== "undefined" ? localStorage.getItem("profilePicturePreview") || "" : ""
+    const imageUrl =
+      (storedUrl && /^https?:\/\//i.test(storedUrl) ? storedUrl : "") ||
+      (storedPreview && /^https?:\/\//i.test(storedPreview) ? storedPreview : "") ||
+      (twinData as any)?.profileImageUrl ||
+      twinData?.variables?.CREATOR_IMAGE ||
+      ""
+
+    const targetUrl = `https://the.talk2me.bot/voice-chat?name=${encodeURIComponent(
+      creatorName,
+    )}&image=${encodeURIComponent(imageUrl)}&agent=${encodeURIComponent(agentId)}`
+
+    // Open in the same window/tab
+    window.location.href = targetUrl
   }
 
   const handleCopyTwinId = async () => {

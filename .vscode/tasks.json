@@ -16,6 +16,13 @@
 			"isBackground": true,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "dev:3000",
+			"type": "shell",
+			"command": "PORT=3000 pnpm dev",
+			"isBackground": true,
+			"group": "build"
 		}
 	]
 }

@@ -34,7 +34,14 @@ export default function Step2() {
   const [greeting, setGreeting] = useState("")
   const [systemPrompt, setSystemPrompt] = useState("")
   const [category, setCategory] = useState("")
-  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'pro'>('starter')
+  // Plan options
+  const planConfig = {
+    starter: { price: '4.99', minutes: '60' },
+  } as const
+
+  type PlanId = keyof typeof planConfig
+
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('starter')
   const [loading, setLoading] = useState(true) // Start with loading=true
   const [autoGenerationComplete, setAutoGenerationComplete] = useState(false)
   const [systemPromptEdited, setSystemPromptEdited] = useState(false) // Track if user edited the prompt
@@ -61,11 +68,6 @@ export default function Step2() {
     "Technology & AI",  // Changed from "Technology & Gadgets" to match analysis
     "Travel & Adventure",
   ]
-
-  // Plan options
-  const planConfig = {
-    starter: { price: '4.99', minutes: '60' }
-  }
 
   // Helper to fetch an image URL and convert to data URL for reliable preview/storage
   const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
@@ -277,7 +279,13 @@ Remember: You are not just an AI assistant, but ${analysisData.author}'s digital
           if (extractedProfileImage && typeof extractedProfileImage === "string") {
             // Immediate display using cross-origin image URL
             setProfilePicturePreview(extractedProfileImage)
-            try { localStorage.setItem("profilePicturePreview", extractedProfileImage) } catch {}
+            try {
+              localStorage.setItem("profilePicturePreview", extractedProfileImage)
+              if (/^https?:\/\//i.test(extractedProfileImage)) {
+                // Keep a stable http(s) URL for integrations that can't accept data: URIs.
+                localStorage.setItem("profilePictureUrl", extractedProfileImage)
+              }
+            } catch {}
             console.log("🖼️ Showing extracted Substack profile image (URL)")
 
             // Background attempt to convert to data URL (may fail due to CORS; safe to ignore)
@@ -290,7 +298,12 @@ Remember: You are not just an AI assistant, but ${analysisData.author}'s digital
             }).catch(() => {/* ignore */})
           } else {
             setProfilePicturePreview(defaultProfilePicture)
-            try { localStorage.setItem("profilePicturePreview", defaultProfilePicture) } catch {}
+            try {
+              localStorage.setItem("profilePicturePreview", defaultProfilePicture)
+              if (/^https?:\/\//i.test(defaultProfilePicture)) {
+                localStorage.setItem("profilePictureUrl", defaultProfilePicture)
+              }
+            } catch {}
           }
 
           console.log("✅ Auto-population complete:")

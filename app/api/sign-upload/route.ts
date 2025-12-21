@@ -12,13 +12,15 @@ export async function POST(request: NextRequest) {
     const contentType = body?.contentType
 
     const bucket = process.env.S3_BUCKET_NAME
-    const region = process.env.AWS_REGION || "us-east-1"
+    // Amplify environment variables cannot start with the reserved prefix "AWS".
+    // Use APP_* variables only.
+    const region = process.env.APP_REGION || "us-east-1"
 
     // Prefer server-side AWS credentials. If not provided, allow the default provider chain
     // (IAM role, web identity, etc.) for hosted environments.
-    const accessKeyId = process.env.AWS_ACCESS_KEY_ID
-    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
-    const sessionToken = process.env.AWS_SESSION_TOKEN
+    const accessKeyId = process.env.APP_ACCESS_KEY
+    const secretAccessKey = process.env.APP_SECRET_ACCESS_KEY
+    const sessionToken = process.env.APP_SESSION_TOKEN
     const hasExplicitCreds = Boolean(accessKeyId && secretAccessKey)
 
     console.log("🔍 S3 presign config:", {
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (!region) {
       console.error("❌ Missing AWS region configuration")
       return NextResponse.json(
-        { success: false, error: "S3 is not configured. Missing AWS_REGION." },
+        { success: false, error: "S3 is not configured. Missing APP_REGION." },
         { status: 500 },
       )
     }
@@ -106,11 +108,11 @@ export async function POST(request: NextRequest) {
     if (!process.env.S3_BUCKET_NAME) {
       hints.push("Missing S3_BUCKET_NAME")
     }
-    if (!process.env.AWS_REGION) {
-      hints.push("Missing AWS_REGION")
+    if (!process.env.APP_REGION) {
+      hints.push("Missing APP_REGION")
     }
-    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-      hints.push("Missing AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY (or use an IAM role)")
+    if (!(process.env.APP_ACCESS_KEY && process.env.APP_SECRET_ACCESS_KEY)) {
+      hints.push("Missing APP_ACCESS_KEY/APP_SECRET_ACCESS_KEY")
     }
 
     return NextResponse.json(

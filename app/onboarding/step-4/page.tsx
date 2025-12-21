@@ -3,8 +3,43 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/components/auth/auth-provider"
+
+type KbIndexRow = {
+  docId: string
+  label: string
+  status?: string
+  progress?: number
+  ok?: boolean
+}
+
+function extractRagStatus(payload: any): { status?: string; progress?: number } {
+  if (!payload) return {}
+  const data = payload?.data ?? payload
+  const indexes = Array.isArray(data?.indexes) ? data.indexes : null
+  const first = indexes && indexes.length ? indexes[0] : null
+  if (first && typeof first === "object") {
+    return {
+      status: typeof first.status === "string" ? first.status : undefined,
+      progress: typeof first.progress_percentage === "number" ? first.progress_percentage : undefined,
+    }
+  }
+
+  return {
+    status: typeof data?.status === "string" ? data.status : undefined,
+    progress: typeof data?.progress_percentage === "number" ? data.progress_percentage : undefined,
+  }
+}
+
+function badgeVariantForStatus(status?: string): "default" | "secondary" | "destructive" {
+  const s = String(status || "").toLowerCase()
+  if (!s) return "secondary"
+  if (s === "succeeded" || s === "success") return "default"
+  if (s === "failed" || s === "error") return "destructive"
+  return "secondary"
+}
 
 export default function Step4() {
   const [substackUrl, setSubstackUrl] = useState("")
@@ -26,6 +61,8 @@ export default function Step4() {
   const [error, setError] = useState<string>("")
   const [mounted, setMounted] = useState(false)
   const [debugInfo, setDebugInfo] = useState<string>("")
+  const [kbIndexRows, setKbIndexRows] = useState<KbIndexRow[]>([])
+  const [kbRagModel, setKbRagModel] = useState<string>("")
   const router = useRouter()
   const [profilePicturePreview, setProfilePicturePreview] = useState("")
   const { user } = useAuth()
@@ -142,6 +179,8 @@ export default function Step4() {
     }
 
     setDebugInfo("Uploading Substack posts to Knowledge Base (from URLs)…")
+    setKbIndexRows([])
+    setKbRagModel("")
 
     const res = await fetch("/api/agents/knowledge-base", {
       method: "POST",
@@ -153,22 +192,45 @@ export default function Step4() {
         articles,
         name: `${creatorName || "Substack"} Articles`,
         maxDocs: 10,
+        kbMode: "file",
       }),
     })
 
     const data = await res.json().catch(() => null)
     if (!res.ok) {
-      const detail = data?.error ? JSON.stringify(data.error) : "Unknown error"
-      setDebugInfo(`Knowledge Base Error: ${res.status} - ${detail}`)
+      const detail = data ? JSON.stringify(data, null, 2) : "(no response body)"
+      setDebugInfo(`Knowledge Base Error: ${res.status}\n${detail}`)
       throw new Error(`Failed to upload Knowledge Base: ${res.status}`)
     }
 
-    const attachedCount = Number(data?.attachedCount || 0)
-    if (attachedCount > 0) {
-      setDebugInfo(`Knowledge Base loaded with ${attachedCount} posts.`)
-    } else {
-      setDebugInfo("Knowledge Base uploaded, but no URLs were attached.")
+    if (data?.ragIndexModel) setKbRagModel(String(data.ragIndexModel))
+    if (Array.isArray(data?.results)) {
+      const rows: KbIndexRow[] = data.results
+        .map((r: any) => {
+          const docId = String(r?.createdId || r?.docId || r?.id || "").trim()
+          if (!docId) return null
+          const label = String(r?.docName || r?.title || docId).trim()
+          const { status, progress } = extractRagStatus(r?.ragIndex)
+          const ok = r?.ragIndex && typeof r.ragIndex === "object" ? Boolean(r.ragIndex.ok) : undefined
+          return { docId, label, status, progress, ok }
+        })
+        .filter(Boolean) as KbIndexRow[]
+
+      setKbIndexRows(rows)
     }
+
+    const attachedCount = Number(data?.attachedCount || 0)
+    const apiSuccess = Boolean(data?.success)
+    if (!apiSuccess || attachedCount === 0) {
+      const firstErr = Array.isArray(data?.results)
+        ? data.results.find((r: any) => r?.error)?.error
+        : null
+      const detail = firstErr ? JSON.stringify(firstErr) : (data?.error ? JSON.stringify(data.error) : "No URLs attached")
+      setDebugInfo(`Knowledge Base upload did not attach any URLs. Detail: ${detail}`)
+      throw new Error("Knowledge Base upload failed to attach posts")
+    }
+
+    setDebugInfo(`Knowledge Base loaded with ${attachedCount} posts.`)
   }
 
   useEffect(() => {
@@ -298,6 +360,36 @@ export default function Step4() {
                   <pre className="text-xs text-yellow-100 whitespace-pre-wrap overflow-x-auto bg-black/20 p-2 rounded">
                     {debugInfo}
                   </pre>
+                </div>
+              )}
+
+              {/* Knowledge Base Index Status */}
+              {!!kbIndexRows.length && (
+                <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h3 className="font-medium text-gray-100">Knowledge Base Indexing</h3>
+                    {kbRagModel ? (
+                      <span className="text-xs text-gray-400">Model: {kbRagModel}</span>
+                    ) : (
+                      <span className="text-xs text-gray-400">Model: (unknown)</span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {kbIndexRows.map((row) => (
+                      <div key={row.docId} className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm text-white truncate">{row.label}</div>
+                          <div className="text-xs text-gray-400 truncate">{row.docId}</div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge variant={badgeVariantForStatus(row.status)}>
+                            {row.status ? row.status : "unknown"}
+                            {typeof row.progress === "number" ? ` ${Math.round(row.progress)}%` : ""}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

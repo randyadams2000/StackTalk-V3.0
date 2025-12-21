@@ -4,6 +4,241 @@ function getElevenLabsApiKey(): string | undefined {
   return process.env.ELEVEN_API_KEY
 }
 
+function getOptionalEnv(name: string): string | undefined {
+  const value = process.env[name]
+  const trimmed = typeof value === "string" ? value.trim() : ""
+  return trimmed ? trimmed : undefined
+}
+
+async function discoverExaConnectionId(apiKey: string): Promise<string | undefined> {
+  try {
+    const listRes = await fetch("https://api.elevenlabs.io/v1/convai/agents", {
+      headers: { "xi-api-key": apiKey },
+    })
+    if (!listRes.ok) return undefined
+    const list = await listRes.json().catch(() => null)
+    const agents = Array.isArray(list?.agents) ? list.agents : []
+
+    for (const a of agents) {
+      const id = String(a?.agent_id || a?.id || "").trim()
+      if (!id) continue
+
+      const res = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${encodeURIComponent(id)}`, {
+        headers: { "xi-api-key": apiKey },
+      })
+      if (!res.ok) continue
+      const agent = await res.json().catch(() => null)
+      const tools = agent?.conversation_config?.agent?.prompt?.tools
+      if (!Array.isArray(tools)) continue
+
+      const exa = tools.find((t: any) => t?.name === "exa_search")
+      const connectionId = String(exa?.api_integration_connection_id || "").trim()
+      if (connectionId) return connectionId
+    }
+
+    return undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function buildDefaultTools(req: NextRequest, apiKey: string): Promise<any[]> {
+  // NOTE: These tool schemas match the structure ElevenLabs expects in
+  // `conversation_config.agent.prompt.tools`.
+  const origin = req.headers.get("origin") || ""
+
+  const retrieveUrl =
+    getOptionalEnv("ELEVEN_GET_CONTEXT_URL") ||
+    getOptionalEnv("CONTEXT_RETRIEVE_URL") ||
+    "https://vtbstifl22flybdwtjideakc340erefx.lambda-url.us-east-1.on.aws/retrieve"
+
+  const saveUrl =
+    getOptionalEnv("ELEVEN_SAVE_CONTEXT_URL") ||
+    getOptionalEnv("CONTEXT_SAVE_URL") ||
+    "https://vtbstifl22flybdwtjideakc340erefx.lambda-url.us-east-1.on.aws/save"
+
+  const exaConnectionId =
+    getOptionalEnv("ELEVEN_EXA_CONNECTION_ID") ||
+    getOptionalEnv("EXA_INTEGRATION_CONNECTION_ID") ||
+    (await discoverExaConnectionId(apiKey))
+
+  const tools: any[] = [
+    {
+      type: "webhook",
+      name: "get_context",
+      description:
+        "ALWAYS call this tool at the beginning of the conversation. This retrieves the user's memory and context from previous conversations.",
+      response_timeout_secs: 20,
+      disable_interruptions: false,
+      force_pre_tool_speech: false,
+      assignments: [
+        {
+          source: "response",
+          dynamic_variable: "zep_context",
+          value_path: "context",
+        },
+      ],
+      tool_call_sound: null,
+      tool_call_sound_behavior: "auto",
+      dynamic_variables: {
+        dynamic_variable_placeholders: {
+          user_id: "default_user",
+        },
+      },
+      execution_mode: "immediate",
+      api_schema: {
+        request_headers: {
+          "Content-Type": "application/json",
+        },
+        url: retrieveUrl,
+        method: "POST",
+        path_params_schema: {},
+        query_params_schema: null,
+        request_body_schema: {
+          type: "object",
+          required: ["user_id"],
+          description: "pass the user_id",
+          properties: {
+            user_id: {
+              type: "string",
+              description: "",
+              enum: null,
+              is_system_provided: false,
+              dynamic_variable: "user_id",
+              constant_value: "",
+            },
+          },
+        },
+        content_type: "application/json",
+        auth_connection: null,
+      },
+    },
+    {
+      type: "webhook",
+      name: "save_context",
+      description: "Call this all the time save memory of conversation. Include both the user's message and your response.",
+      response_timeout_secs: 20,
+      disable_interruptions: false,
+      force_pre_tool_speech: false,
+      assignments: [],
+      tool_call_sound: null,
+      tool_call_sound_behavior: "auto",
+      dynamic_variables: {
+        dynamic_variable_placeholders: {
+          user_id: "default_user",
+        },
+      },
+      execution_mode: "async",
+      api_schema: {
+        request_headers: {
+          "Content-Type": "application/json",
+        },
+        url: saveUrl,
+        method: "POST",
+        path_params_schema: {},
+        query_params_schema: null,
+        request_body_schema: {
+          type: "object",
+          required: ["content", "thread_id"],
+          description: "Summarize the last exchange: what the user said and what you responded. Be concise. and save the context",
+          properties: {
+            content: {
+              type: "string",
+              description: "Summarize the last exchange: what the user said and what you responded. Be concise.",
+              enum: null,
+              is_system_provided: false,
+              dynamic_variable: "",
+              constant_value: "",
+            },
+            user_id: {
+              type: "string",
+              description: "",
+              enum: null,
+              is_system_provided: false,
+              dynamic_variable: "user_id",
+              constant_value: "",
+            },
+            thread_id: {
+              type: "string",
+              description: "",
+              enum: null,
+              is_system_provided: false,
+              dynamic_variable: "user_id",
+              constant_value: "",
+            },
+          },
+        },
+        content_type: "application/json",
+        auth_connection: null,
+      },
+    },
+    {
+      type: "client",
+      name: "ShowWeb",
+      description: "This tool will cause the client to open a web page from the provided URL.",
+      response_timeout_secs: 10,
+      disable_interruptions: false,
+      force_pre_tool_speech: true,
+      assignments: [],
+      tool_call_sound: null,
+      tool_call_sound_behavior: "auto",
+      parameters: {
+        type: "object",
+        required: ["URL"],
+        description: "",
+        properties: {
+          URL: {
+            type: "string",
+            description: "This is the URL of the web page that is desired to be opened.",
+            enum: null,
+            is_system_provided: false,
+            dynamic_variable: "",
+            constant_value: "",
+          },
+        },
+      },
+      expects_response: true,
+      dynamic_variables: {
+        dynamic_variable_placeholders: {},
+      },
+      execution_mode: "immediate",
+    },
+  ]
+
+  if (exaConnectionId) {
+    tools.push({
+      type: "api_integration_webhook",
+      name: "exa_search",
+      description:
+        "Search the web using Exa's search engine. Provide a natural language query to find relevant content. Returns up to 8 search results with text content (max 2000 characters per result).",
+      response_timeout_secs: 20,
+      disable_interruptions: false,
+      force_pre_tool_speech: false,
+      assignments: [],
+      tool_call_sound: null,
+      tool_call_sound_behavior: "auto",
+      dynamic_variables: {
+        dynamic_variable_placeholders: {},
+      },
+      execution_mode: "immediate",
+      tool_version: "1.0.0",
+      api_integration_id: "exa",
+      api_integration_connection_id: exaConnectionId,
+      api_schema_overrides: null,
+    })
+  } else {
+    // Keep the other 3 tools, but surface a helpful hint for Exa setup.
+    // We don't hard-fail agent creation because some environments don't have Exa configured.
+    console.warn(
+      "Exa integration connection id not found; omitting exa_search tool. Set ELEVEN_EXA_CONNECTION_ID to force-enable.",
+    )
+  }
+
+  // Suppress unused var lint (origin reserved for future use if you want to host your own webhook URLs)
+  void origin
+  return tools
+}
+
 export async function POST(req: NextRequest) {
   try {
     const apiKey = getElevenLabsApiKey()
@@ -24,6 +259,8 @@ export async function POST(req: NextRequest) {
 
     if (!name) return NextResponse.json({ success: false, error: "Missing name" }, { status: 400 })
     if (!voiceId) return NextResponse.json({ success: false, error: "Missing voiceId" }, { status: 400 })
+
+    const tools = await buildDefaultTools(req, apiKey)
 
     // ElevenLabs ConvAI expects a fairly rich `conversation_config` schema.
     // We mirror the shape returned by GET /v1/convai/agents/{agent_id} to avoid schema-related 5xx/422s.
@@ -84,7 +321,10 @@ export async function POST(req: NextRequest) {
             dynamic_variable_placeholders: {},
           },
           disable_first_message_interruptions: false,
-          ...(systemPrompt ? { prompt: { prompt: systemPrompt } } : {}),
+          prompt: {
+            ...(systemPrompt ? { prompt: systemPrompt } : {}),
+            tools,
+          },
         },
       },
     }
