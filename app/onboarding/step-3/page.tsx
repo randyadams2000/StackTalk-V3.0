@@ -309,12 +309,13 @@ export default function Step3() {
       let presignError: string | null = null
 
       try {
+        const uploadContentType = (audioBlob as any).type || "application/octet-stream"
         const signRes = await fetch("/api/sign-upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             filename: uploadedFileName || "voice-sample.wav",
-            contentType: (audioBlob as any).type || "audio/wav",
+            contentType: uploadContentType,
           }),
         })
 
@@ -329,7 +330,7 @@ export default function Step3() {
         console.log("⬆️ Uploading to S3:", { key, expectedContentType: debug?.expectedContentType, blobType: (audioBlob as any).type })
 
         // Warn if content types don't match what was presigned
-        const putContentType = (audioBlob as any).type || "application/octet-stream"
+        const putContentType = uploadContentType
         if (debug?.expectedContentType && debug.expectedContentType !== putContentType) {
           console.warn("⚠️ Content-Type mismatch. PUT will use:", putContentType, "but presigned for:", debug.expectedContentType)
         }

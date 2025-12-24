@@ -13,7 +13,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     const bucket = process.env.S3_BUCKET_NAME
-    const region = process.env.APP_REGION
+    const region =
+      process.env.APP_REGION ||
+      process.env.APP_AWS_REGION ||
+      process.env.AWS_REGION ||
+      process.env.AWS_DEFAULT_REGION
     const accessKeyId = process.env.APP_ACCESS_KEY
     const secretAccessKey = process.env.APP_SECRET_ACCESS_KEY
     const sessionToken = process.env.APP_SESSION_TOKEN
