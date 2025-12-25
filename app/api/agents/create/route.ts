@@ -357,7 +357,7 @@ export async function POST(req: NextRequest) {
         },
         conversation: {
           text_only: false,
-          max_duration_seconds: 6000,
+          max_duration_seconds: 60,
           client_events: [
             "audio",
             "interruption",

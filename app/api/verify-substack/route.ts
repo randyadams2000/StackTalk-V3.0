@@ -1,5 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function getElevenLabsApiKey(): string | undefined {
+  const candidates = [
+    process.env.ELEVEN_API_KEY,
+    process.env.ELEVENLABS_API_KEY,
+    process.env.ELEVEN_LABS_API_KEY,
+  ];
+  for (const value of candidates) {
+    const trimmed = typeof value === 'string' ? value.trim() : '';
+    if (trimmed) return trimmed;
+  }
+  return undefined;
+}
+
+async function bumpAgentMaxDuration(agentId: string): Promise<{ updated: boolean; detail?: any }> {
+  const apiKey = getElevenLabsApiKey();
+  if (!apiKey) return { updated: false, detail: 'Missing ELEVEN_API_KEY' };
+
+  const url = `https://api.elevenlabs.io/v1/convai/agents/${encodeURIComponent(agentId)}`;
+  const body = {
+    conversation_config: {
+      conversation: {
+        max_duration_seconds: 600,
+      },
+    },
+  };
+
+  // Best-effort: ElevenLabs may use PATCH or POST for updates depending on API version.
+  // We try PATCH first, then fall back to POST if needed.
+  const tryUpdate = async (method: 'PATCH' | 'POST') => {
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': apiKey,
+      },
+      body: JSON.stringify(body),
+    });
+    const text = await res.text().catch(() => '');
+    let parsed: any = null;
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      parsed = text;
+    }
+    return { ok: res.ok, status: res.status, data: parsed };
+  };
+
+  const patchRes = await tryUpdate('PATCH');
+  if (patchRes.ok) return { updated: true };
+
+  // If PATCH is unsupported, retry with POST.
+  if (patchRes.status === 404 || patchRes.status === 405) {
+    const postRes = await tryUpdate('POST');
+    if (postRes.ok) return { updated: true };
+    return { updated: false, detail: { patch: patchRes, post: postRes } };
+  }
+
+  return { updated: false, detail: { patch: patchRes } };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { aboutUrl, agentId, verificationLink, twinId } = await request.json();
@@ -49,9 +109,23 @@ export async function POST(request: NextRequest) {
 
     if (containsAgentId || containsVerificationLink) {
       console.log('🎉 Verification successful!');
+
+      // After ownership is verified, raise the conversation max duration.
+      // This is best-effort and does not block verification success.
+      const agentToUpdate = typeof agentId === 'string' && agentId ? agentId : (typeof twinId === 'string' ? twinId : '');
+      let agentDurationUpdate: any = undefined;
+      if (agentToUpdate) {
+        try {
+          agentDurationUpdate = await bumpAgentMaxDuration(agentToUpdate);
+        } catch (e) {
+          agentDurationUpdate = { updated: false, detail: e instanceof Error ? e.message : String(e) };
+        }
+      }
+
       return NextResponse.json({
         verified: true,
-        message: 'Ownership verified successfully! Agent marker or link found in Substack about page.'
+        message: 'Ownership verified successfully! Agent marker or link found in Substack about page.',
+        agentDurationUpdate,
       });
     } else {
       console.log('❌ Verification failed - link not found');

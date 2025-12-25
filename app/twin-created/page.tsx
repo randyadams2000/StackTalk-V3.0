@@ -218,7 +218,7 @@ export default function TwinCreated() {
           </div>
           <h1 className="text-4xl font-bold text-white mb-3">🎉 Your Persona is Ready!</h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            {twinData.author}&apos;s Persona has been successfully created with dynamic system variables
+            {twinData.author}&apos;s Persona has been successfully created!
           </p>
         </div>
 
@@ -240,31 +240,22 @@ export default function TwinCreated() {
 
 
         {/* Verification Section */}
-        <Card className="mb-8 shadow-lg border-orange-600/30 bg-black">
+        <Card className=" text-center mb-8 shadow-lg border-orange-600/30 bg-black">
           <CardHeader className="bg-orange-900/20">
-            <CardTitle className="flex items-center gap-2 text-orange-400">
-              <Shield className="h-5 w-5" />
+            <CardTitle className=" items-center gap-2 text-orange-400">
               Next Step: Verify Ownership
             </CardTitle>
             <CardDescription className="text-orange-300">
-              Publish your StackTalk and allow others to use it
+              Your persona will hang up after 1 minute until you verify it. <br></br> All personas not verified within one hour will be deleted. <br></br>Add the link below to your About page, then click Verify Ownership.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="bg-orange-900/20 rounded-lg p-3 border border-orange-600/30 mb-3">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-orange-200">
-                  Add the link to your About page (temporary is fine), then click Verify Ownership.
-                </div>
-              </div>
-            </div>
+
 
             {/* Twin ID Display */}
-            <div className="bg-black rounded-lg p-3 border mb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="text-sm text-gray-300">Add this link (can be tremporary) somewhere on your about page.</div>
+            <div>
+              <div className=" text-center">
+                <div className="flex">
                 </div>
                 <Button onClick={handleCopyTwinId} variant="outline" className="ml-4">
                   <Copy className="h-4 w-4 mr-2" />
@@ -272,7 +263,7 @@ export default function TwinCreated() {
                 </Button>
               </div>
             </div>
-
+<br></br>
             {/* Verification Status */}
             {isVerified ? (
               <div className="bg-green-900/20 rounded-lg p-3 border border-green-600/30 mb-3">
@@ -335,8 +326,8 @@ export default function TwinCreated() {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto leading-relaxed">
-                Your fans will get 15 free minutes of access and then they will be asked to subscribe at $4.99/month. 
-                You will receive $3.99 of that payment. We will distribute the payment to you monthly via Zelle or your perferred method of payment.
+                Your fans will get free access for 10 minutes and then they will be asked to subscribe at $9.99/month. 
+                You will receive $4.60 of that fee, monthly via your perferred method of payment.
               </p>
             </div>
           </CardContent>
