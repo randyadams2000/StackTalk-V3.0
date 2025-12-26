@@ -142,7 +142,7 @@ export default function LandingPage() {
             <div className="flex items-center space-x-2">
               <button onClick={scrollToTop} className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
                 <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">S</span>
+                  <span className="text-white font-bold text-sm">M</span>
                 </div>
                 <span className="text-xl font-bold">MediaPersonas.com</span>
               </button>

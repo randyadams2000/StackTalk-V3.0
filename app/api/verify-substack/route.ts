@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 function getElevenLabsApiKey(): string | undefined {
   const candidates = [
     process.env.ELEVEN_API_KEY,
-    process.env.ELEVENLABS_API_KEY,
-    process.env.ELEVEN_LABS_API_KEY,
   ];
   for (const value of candidates) {
     const trimmed = typeof value === 'string' ? value.trim() : '';
