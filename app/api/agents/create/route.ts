@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+export const runtime = "nodejs"
+
 function ensurePacificTimePrompt(systemPrompt: string): string {
   const prompt = String(systemPrompt ?? "")
   const normalized = prompt.toLowerCase()
@@ -293,6 +295,13 @@ async function buildDefaultTools(req: NextRequest, apiKey: string): Promise<any[
 
 export async function POST(req: NextRequest) {
   try {
+    const debugEnv = {
+      hasElevenApiKey: Boolean(getElevenLabsApiKey()),
+      hasElevenGetContextUrl: Boolean(getOptionalEnv("ELEVEN_GET_CONTEXT_URL") || getOptionalEnv("CONTEXT_RETRIEVE_URL")),
+      hasElevenSaveContextUrl: Boolean(getOptionalEnv("ELEVEN_SAVE_CONTEXT_URL") || getOptionalEnv("CONTEXT_SAVE_URL")),
+      hasExaConnectionId: Boolean(getOptionalEnv("ELEVEN_EXA_CONNECTION_ID") || getOptionalEnv("EXA_INTEGRATION_CONNECTION_ID")),
+    }
+
     const apiKey = getElevenLabsApiKey()
     if (!apiKey) {
       return NextResponse.json(
@@ -300,12 +309,26 @@ export async function POST(req: NextRequest) {
           success: false,
           error:
             "Missing ElevenLabs API key. Set ELEVEN_API_KEY (or ELEVENLABS_API_KEY / ELEVEN_LABS_API_KEY) in your deployment environment.",
+          debug: debugEnv,
         },
         { status: 500 },
       )
     }
 
-    const body = await req.json()
+    let body: any
+    try {
+      body = await req.json()
+    } catch (e) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid JSON body",
+          message: e instanceof Error ? e.message : String(e),
+        },
+        { status: 400 },
+      )
+    }
+
     const name = String(body?.name || "").trim()
     const systemPrompt = String(body?.systemPrompt || "").trim()
     const greeting = String(body?.greeting || "").trim()
@@ -386,14 +409,32 @@ export async function POST(req: NextRequest) {
       },
     }
 
-    const res = await fetch("https://api.elevenlabs.io/v1/convai/agents/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "xi-api-key": apiKey,
-      },
-      body: JSON.stringify(payload),
-    })
+    let res: Response
+    try {
+      res = await fetch("https://api.elevenlabs.io/v1/convai/agents/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "xi-api-key": apiKey,
+        },
+        body: JSON.stringify(payload),
+      })
+    } catch (e) {
+      const err: any = e
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to reach ElevenLabs API",
+          message: err?.message || String(e),
+          name: err?.name,
+          cause: err?.cause ? String(err.cause) : undefined,
+          hint:
+            "If this only fails on Amplify: check outbound network access/DNS, and confirm ELEVEN_API_KEY is set in Amplify environment variables.",
+          debug: debugEnv,
+        },
+        { status: 502 },
+      )
+    }
 
     const text = await res.text()
     let data: any = null
@@ -409,6 +450,7 @@ export async function POST(req: NextRequest) {
           success: false,
           status: res.status,
           error: data,
+          requestId: res.headers.get("request-id") || res.headers.get("x-request-id"),
         },
         { status: res.status },
       )
@@ -417,7 +459,16 @@ export async function POST(req: NextRequest) {
     const agentId = data?.agent_id
     return NextResponse.json({ success: true, agentId, raw: data })
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error"
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
+    const err: any = e
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Agent creation failed",
+        message: err?.message || "Unknown error",
+        name: err?.name,
+        cause: err?.cause ? String(err.cause) : undefined,
+      },
+      { status: 500 },
+    )
   }
 }
