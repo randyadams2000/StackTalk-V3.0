@@ -1,0 +1,20 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm install -g pnpm
+        - pnpm install
+    build:
+      commands:
+        - echo "=== Checking environment variables ==="
+        - env | grep -E "ELEVEN|OPENAI|S3_BUCKET|APP_REGION|APP_ACCESS" | grep -v "SECRET" || echo "No relevant env vars found"
+        - pnpm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
