@@ -12,15 +12,8 @@ function ensurePacificTimePrompt(systemPrompt: string): string {
 }
 
 function getElevenLabsApiKey(): string | undefined {
-  const candidates = [
-    process.env.APP_ELEVEN_API_KEY,
-    process.env.ELEVEN_API_KEY,
-  ]
-  for (const value of candidates) {
-    const trimmed = typeof value === "string" ? value.trim() : ""
-    if (trimmed) return trimmed
-  }
-  return undefined
+  const value = process.env.APP_ELEVEN_API_KEY
+  return typeof value === "string" && value.trim() ? value.trim() : undefined
 }
 
 function getOptionalEnv(name: string): string | undefined {

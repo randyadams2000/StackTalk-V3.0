@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 function getElevenLabsApiKey(): string | undefined {
-  const candidates = [
-    process.env.APP_ELEVEN_API_KEY,
-    process.env.ELEVEN_API_KEY,
-  ];
-  for (const value of candidates) {
-    const trimmed = typeof value === 'string' ? value.trim() : '';
-    if (trimmed) return trimmed;
-  }
-  return undefined;
+  const value = process.env.APP_ELEVEN_API_KEY;
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
 async function bumpAgentMaxDuration(agentId: string): Promise<{ updated: boolean; detail?: any }> {

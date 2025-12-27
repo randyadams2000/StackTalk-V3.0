@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const filename = body?.filename
     const contentType = body?.contentType
 
-    const bucket = process.env.APP_S3_BUCKET_NAME || process.env.S3_BUCKET_NAME
+    const bucket = process.env.APP_S3_BUCKET_NAME
     // Amplify environment variables cannot start with the reserved prefix "AWS".
     // Use APP_* variables only.
     // Note: managed runtimes often provide AWS_REGION/AWS_DEFAULT_REGION automatically.
@@ -131,8 +131,8 @@ export async function POST(request: NextRequest) {
     const err = error as any
 
     const hints: string[] = []
-    if (!(process.env.APP_S3_BUCKET_NAME || process.env.S3_BUCKET_NAME)) {
-      hints.push("Missing APP_S3_BUCKET_NAME (or S3_BUCKET_NAME)")
+    if (!process.env.APP_S3_BUCKET_NAME) {
+      hints.push("Missing APP_S3_BUCKET_NAME")
     }
     if (!(process.env.APP_ACCESS_KEY && process.env.APP_SECRET_ACCESS_KEY)) {
       hints.push("Missing APP_ACCESS_KEY/APP_SECRET_ACCESS_KEY")

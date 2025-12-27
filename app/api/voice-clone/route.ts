@@ -13,7 +13,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if ElevenLabs API key is available
-    const elevenLabsApiKey = process.env.APP_ELEVEN_API_KEY || process.env.ELEVEN_API_KEY
+    const elevenLabsApiKey = process.env.APP_ELEVEN_API_KEY
     if (!elevenLabsApiKey) {
       console.warn("⚠️ APP_ELEVEN_API_KEY missing, returning mock deletion")
       return NextResponse.json({
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: "s3Key is required" }, { status: 400 })
       }
 
-      const bucket = process.env.APP_S3_BUCKET_NAME || process.env.S3_BUCKET_NAME
+      const bucket = process.env.APP_S3_BUCKET_NAME
       const region =
         process.env.APP_REGION ||
         process.env.APP_AWS_REGION ||
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if ElevenLabs API key is available
-    const elevenLabsApiKey = process.env.APP_ELEVEN_API_KEY || process.env.ELEVEN_API_KEY
+    const elevenLabsApiKey = process.env.APP_ELEVEN_API_KEY
     if (!elevenLabsApiKey) {
       console.warn("⚠️ APP_ELEVEN_API_KEY missing, returning mock")
       return NextResponse.json({

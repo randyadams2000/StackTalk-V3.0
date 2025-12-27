@@ -12,7 +12,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: "s3Key is required" }, { status: 400 })
     }
 
-    const bucket = process.env.APP_S3_BUCKET_NAME || process.env.S3_BUCKET_NAME
+    const bucket = process.env.APP_S3_BUCKET_NAME
     const region =
       process.env.APP_REGION ||
       process.env.APP_AWS_REGION ||

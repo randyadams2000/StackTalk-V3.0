@@ -8,7 +8,7 @@ function sleep(ms: number) {
 }
 
 function getElevenLabsApiKey(): string | undefined {
-  return process.env.APP_ELEVEN_API_KEY || process.env.ELEVEN_API_KEY
+  return process.env.APP_ELEVEN_API_KEY
 }
 
 function getOptionalEnv(name: string): string | undefined {
