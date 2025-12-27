@@ -2,12 +2,16 @@
 const nextConfig = {
   // Explicitly pass server-side env vars to runtime (required for Amplify SSR)
   serverRuntimeConfig: {
-    ELEVEN_API_KEY: process.env.ELEVEN_API_KEY,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
+    APP_ELEVEN_API_KEY: process.env.APP_ELEVEN_API_KEY,
+    APP_OPENAI_API_KEY: process.env.APP_OPENAI_API_KEY,
+    APP_S3_BUCKET_NAME: process.env.APP_S3_BUCKET_NAME,
     APP_REGION: process.env.APP_REGION,
     APP_ACCESS_KEY: process.env.APP_ACCESS_KEY,
     APP_SECRET_ACCESS_KEY: process.env.APP_SECRET_ACCESS_KEY,
+    // Backward compatibility
+    ELEVEN_API_KEY: process.env.ELEVEN_API_KEY || process.env.APP_ELEVEN_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY || process.env.APP_OPENAI_API_KEY,
+    S3_BUCKET_NAME: process.env.S3_BUCKET_NAME || process.env.APP_S3_BUCKET_NAME,
   },
   eslint: {
     ignoreDuringBuilds: true,

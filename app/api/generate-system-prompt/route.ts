@@ -168,7 +168,7 @@ async function generatePromptVariables(
   workflowVariables: string
 ): Promise<SystemPromptVariables> {
   
-  const openaiApiKey = process.env.OPENAI_API_KEY
+  const openaiApiKey = process.env.APP_OPENAI_API_KEY || process.env.OPENAI_API_KEY
   if (!openaiApiKey) {
     // Fallback to basic analysis if no API key
     return generateFallbackVariables(rssData, substackUrl, additionalRestrictions, workflowVariables)

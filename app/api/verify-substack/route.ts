@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 function getElevenLabsApiKey(): string | undefined {
   const candidates = [
+    process.env.APP_ELEVEN_API_KEY,
     process.env.ELEVEN_API_KEY,
   ];
   for (const value of candidates) {

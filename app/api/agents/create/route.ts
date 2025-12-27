@@ -13,6 +13,7 @@ function ensurePacificTimePrompt(systemPrompt: string): string {
 
 function getElevenLabsApiKey(): string | undefined {
   const candidates = [
+    process.env.APP_ELEVEN_API_KEY,
     process.env.ELEVEN_API_KEY,
   ]
   for (const value of candidates) {

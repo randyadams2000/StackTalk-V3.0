@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 function getElevenLabsApiKey(): string | undefined {
-  return process.env.ELEVEN_API_KEY
+  return process.env.APP_ELEVEN_API_KEY || process.env.ELEVEN_API_KEY
 }
 
 export async function GET(req: NextRequest) {
