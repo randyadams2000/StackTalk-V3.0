@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
+import { getElevenLabsApiKey as getElevenLabsApiKeySecret, getS3Credentials } from "@/lib/secrets"
 
 export const runtime = "nodejs"
 
@@ -13,9 +14,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if ElevenLabs API key is available
-    const elevenLabsApiKey = process.env.APP_ELEVEN_API_KEY
+    const elevenLabsApiKey = await getElevenLabsApiKeySecret()
     if (!elevenLabsApiKey) {
-      console.warn("⚠️ APP_ELEVEN_API_KEY missing, returning mock deletion")
+      console.warn("⚠️ ElevenLabs API key missing, returning mock deletion")
       return NextResponse.json({
         success: true,
         message: "Voice clone deleted successfully (mock mode)",
@@ -72,20 +73,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: "s3Key is required" }, { status: 400 })
       }
 
-      const bucket = process.env.APP_S3_BUCKET_NAME
-      const region =
-        process.env.APP_REGION ||
-        process.env.APP_AWS_REGION ||
-        process.env.AWS_REGION ||
-        process.env.AWS_DEFAULT_REGION ||
-        "us-east-1"
-      const accessKeyId = process.env.APP_ACCESS_KEY
-      const secretAccessKey =
-        process.env.APP_SECRET_ACCESS_KEY
-      const sessionToken = process.env.APP_SESSION_TOKEN
+      const s3Creds = await getS3Credentials()
+      const bucket = s3Creds?.bucket
+      const region = s3Creds?.region || "us-east-1"
+      const accessKeyId = s3Creds?.accessKey
+      const secretAccessKey = s3Creds?.secretKey
+      
       if (!bucket || !region) {
         return NextResponse.json(
-          { success: false, error: "S3 is not configured. Missing APP_S3_BUCKET_NAME / APP_REGION." },
+          { success: false, error: "S3 is not configured. Missing bucket or region." },
           { status: 500 },
         )
       }
@@ -94,7 +90,7 @@ export async function POST(request: NextRequest) {
         region,
         credentials:
           accessKeyId && secretAccessKey
-            ? { accessKeyId, secretAccessKey, sessionToken }
+            ? { accessKeyId, secretAccessKey }
             : undefined,
       })
       let getRes: any
@@ -205,9 +201,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if ElevenLabs API key is available
-    const elevenLabsApiKey = process.env.APP_ELEVEN_API_KEY
+    const elevenLabsApiKey = await getElevenLabsApiKeySecret()
     if (!elevenLabsApiKey) {
-      console.warn("⚠️ APP_ELEVEN_API_KEY missing, returning mock")
+      console.warn("⚠️ ElevenLabs API key missing, returning mock")
       return NextResponse.json({
         success: true,
         voice_id: `voice_${Date.now()}`,

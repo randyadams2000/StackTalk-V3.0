@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getElevenLabsApiKey as getElevenLabsApiKeySecret } from '@/lib/secrets';
 
-function getElevenLabsApiKey(): string | undefined {
+async function getElevenLabsApiKey(): Promise<string | undefined> {
+  const secret = await getElevenLabsApiKeySecret();
+  if (secret) return secret;
+  
   const value = process.env.APP_ELEVEN_API_KEY;
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
 async function bumpAgentMaxDuration(agentId: string): Promise<{ updated: boolean; detail?: any }> {
-  const apiKey = getElevenLabsApiKey();
-  if (!apiKey) return { updated: false, detail: 'Missing ELEVEN_API_KEY' };
+  const apiKey = await getElevenLabsApiKey();
+  if (!apiKey) return { updated: false, detail: 'Missing API key' };
 
   const url = `https://api.elevenlabs.io/v1/convai/agents/${encodeURIComponent(agentId)}`;
   const body = {

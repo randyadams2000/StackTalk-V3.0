@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { getElevenLabsApiKey } from "@/lib/secrets"
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Check if ElevenLabs API key is available
-    const elevenLabsApiKey = process.env.APP_ELEVEN_API_KEY
+    const elevenLabsApiKey = await getElevenLabsApiKey()
     if (!elevenLabsApiKey) {
       console.warn("⚠️ ElevenLabs API key not found, using mock response")
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+import { getS3Credentials } from "@/lib/secrets"
 import { randomUUID } from "crypto"
 
 export const runtime = "nodejs"
@@ -11,28 +12,16 @@ export async function POST(request: NextRequest) {
     const filename = body?.filename
     const contentType = body?.contentType
 
-    const bucket = process.env.APP_S3_BUCKET_NAME
-    // Amplify environment variables cannot start with the reserved prefix "AWS".
-    // Use APP_* variables only.
-    // Note: managed runtimes often provide AWS_REGION/AWS_DEFAULT_REGION automatically.
-    const region =
-      process.env.APP_REGION ||
-      process.env.APP_AWS_REGION ||
-      process.env.AWS_REGION ||
-      process.env.AWS_DEFAULT_REGION ||
-      "us-east-1"
-
-    // Prefer server-side AWS credentials. If not provided, allow the default provider chain
-    // (IAM role, web identity, etc.) for hosted environments.
-    const accessKeyId = process.env.APP_ACCESS_KEY
-    const secretAccessKey = process.env.APP_SECRET_ACCESS_KEY
-    const sessionToken = process.env.APP_SESSION_TOKEN
-    const hasExplicitCreds = Boolean(accessKeyId && secretAccessKey)
+    const s3Creds = await getS3Credentials()
+    const bucket = s3Creds?.bucket
+    const region = s3Creds?.region || "us-east-1"
+    const accessKeyId = s3Creds?.accessKey
+    const secretAccessKey = s3Creds?.secretKey
 
     console.log("🔍 S3 presign config:", {
       bucketSet: Boolean(bucket),
       region,
-      credentialSource: hasExplicitCreds ? "env" : "default-provider",
+      credentialSource: accessKeyId && secretAccessKey ? "secrets" : "default-provider",
       filename: typeof filename === "string" ? filename : undefined,
       contentType: typeof contentType === "string" ? contentType : undefined,
     })
@@ -54,8 +43,8 @@ export async function POST(request: NextRequest) {
       // When explicit credentials are not provided we fall back to the default credential
       // provider chain (IAM role, web identity, etc.) so Amplify hosted environments work
       // without storing long-lived keys.
-      credentials: hasExplicitCreds
-        ? { accessKeyId: accessKeyId!, secretAccessKey: secretAccessKey!, sessionToken }
+      credentials: accessKeyId && secretAccessKey
+        ? { accessKeyId, secretAccessKey }
         : undefined,
     })
 
@@ -77,9 +66,7 @@ export async function POST(request: NextRequest) {
           debug: {
             bucket,
             region,
-            credentialSource: hasExplicitCreds ? "env" : "default-provider",
-            hasAppAccessKey: Boolean(process.env.APP_ACCESS_KEY),
-            hasAppSecret: Boolean(process.env.APP_SECRET_ACCESS_KEY),
+            credentialSource: accessKeyId && secretAccessKey ? "secrets" : "default-provider",
           },
         },
         { status: 500 },
@@ -121,7 +108,7 @@ export async function POST(request: NextRequest) {
       debug: {
         bucket,
         region,
-        credentialSource: hasExplicitCreds ? "env" : "default-provider",
+        credentialSource: accessKeyId && secretAccessKey ? "secrets" : "default-provider",
         expectedContentType,
         presignTookMs: elapsedMs,
       },
@@ -130,21 +117,12 @@ export async function POST(request: NextRequest) {
     console.error("❌ sign-upload error:", error)
     const err = error as any
 
-    const hints: string[] = []
-    if (!process.env.APP_S3_BUCKET_NAME) {
-      hints.push("Missing APP_S3_BUCKET_NAME")
-    }
-    if (!(process.env.APP_ACCESS_KEY && process.env.APP_SECRET_ACCESS_KEY)) {
-      hints.push("Missing APP_ACCESS_KEY/APP_SECRET_ACCESS_KEY")
-    }
-
-    if (!(process.env.APP_REGION || process.env.APP_AWS_REGION || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION)) {
-      hints.push("Missing APP_REGION (or APP_AWS_REGION / runtime AWS_REGION/AWS_DEFAULT_REGION)")
-    }
-
-    hints.push(
-      "If you rely on an IAM role (recommended on Amplify), leave APP_ACCESS_KEY/APP_SECRET_ACCESS_KEY unset so the default provider chain can use the runtime role credentials.",
-    )
+    const hints: string[] = [
+      "Ensure secrets are configured in AWS Secrets Manager (stacktalk/s3-credentials)",
+      "Verify IAM role has secretsmanager:GetSecretValue permission",
+      "If using environment variables, ensure APP_S3_BUCKET_NAME and APP_REGION are set",
+      "For IAM role-based auth (recommended on Amplify), leave credentials unset in secrets"
+    ]
 
     return NextResponse.json(
       {

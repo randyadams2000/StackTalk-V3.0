@@ -1,12 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server"
-
-function getElevenLabsApiKey(): string | undefined {
-  return process.env.APP_ELEVEN_API_KEY
-}
+import { getElevenLabsApiKey } from "@/lib/secrets"
 
 export async function GET(req: NextRequest) {
   try {
-    const apiKey = getElevenLabsApiKey()
+    const apiKey = await getElevenLabsApiKey()
     if (!apiKey) {
       return NextResponse.json(
         { success: false, error: "Missing ElevenLabs API key (set ELEVEN_API_KEY)." },

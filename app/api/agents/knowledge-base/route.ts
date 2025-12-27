@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
+import { getElevenLabsApiKey as getElevenLabsApiKeySecret } from "@/lib/secrets"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -7,7 +8,9 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-function getElevenLabsApiKey(): string | undefined {
+async function getElevenLabsApiKey(): Promise<string | undefined> {
+  const secret = await getElevenLabsApiKeySecret()
+  if (secret) return secret
   return process.env.APP_ELEVEN_API_KEY
 }
 
@@ -547,7 +550,7 @@ function buildKnowledgeBaseText(params: {
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = getElevenLabsApiKey()
+    const apiKey = await getElevenLabsApiKey()
     if (!apiKey) {
       return NextResponse.json(
         { success: false, error: "Missing ElevenLabs API key (set ELEVEN_API_KEY)." },
@@ -1260,7 +1263,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const apiKey = getElevenLabsApiKey()
+    const apiKey = await getElevenLabsApiKey()
     if (!apiKey) {
       return NextResponse.json(
         { success: false, error: "Missing ElevenLabs API key (set ELEVEN_API_KEY)." },

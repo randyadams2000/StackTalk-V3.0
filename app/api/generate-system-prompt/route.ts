@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prependMemoryProtocol } from "@/lib/system-prompt-prefix"
+import { getOpenAiApiKey } from "@/lib/secrets"
 
 interface RSSPost {
   title: string
@@ -168,7 +169,7 @@ async function generatePromptVariables(
   workflowVariables: string
 ): Promise<SystemPromptVariables> {
   
-  const openaiApiKey = process.env.APP_OPENAI_API_KEY
+  const openaiApiKey = await getOpenAiApiKey()
   if (!openaiApiKey) {
     // Fallback to basic analysis if no API key
     return generateFallbackVariables(rssData, substackUrl, additionalRestrictions, workflowVariables)

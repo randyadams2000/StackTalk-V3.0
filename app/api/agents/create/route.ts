@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
+import { getElevenLabsApiKey as getElevenLabsApiKeySecret } from "@/lib/secrets"
 
 export const runtime = "nodejs"
 
@@ -11,7 +12,11 @@ function ensurePacificTimePrompt(systemPrompt: string): string {
   return `${prefix}${prompt}`
 }
 
-function getElevenLabsApiKey(): string | undefined {
+async function getElevenLabsApiKey(): Promise<string | undefined> {
+  // Try secrets first, fall back to env var
+  const secret = await getElevenLabsApiKeySecret()
+  if (secret) return secret
+  
   const value = process.env.APP_ELEVEN_API_KEY
   return typeof value === "string" && value.trim() ? value.trim() : undefined
 }
@@ -294,7 +299,7 @@ export async function POST(req: NextRequest) {
       hasExaConnectionId: Boolean(getOptionalEnv("ELEVEN_EXA_CONNECTION_ID") || getOptionalEnv("EXA_INTEGRATION_CONNECTION_ID")),
     }
 
-    const apiKey = getElevenLabsApiKey()
+    const apiKey = await getElevenLabsApiKey()
     if (!apiKey) {
       return NextResponse.json(
         {

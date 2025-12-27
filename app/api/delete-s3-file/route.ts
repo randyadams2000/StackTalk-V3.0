@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import { getS3Credentials } from "@/lib/secrets"
 
 export const runtime = "nodejs"
 
@@ -12,19 +13,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: "s3Key is required" }, { status: 400 })
     }
 
-    const bucket = process.env.APP_S3_BUCKET_NAME
-    const region =
-      process.env.APP_REGION ||
-      process.env.APP_AWS_REGION ||
-      process.env.AWS_REGION ||
-      process.env.AWS_DEFAULT_REGION
-    const accessKeyId = process.env.APP_ACCESS_KEY
-    const secretAccessKey = process.env.APP_SECRET_ACCESS_KEY
-    const sessionToken = process.env.APP_SESSION_TOKEN
+    const s3Creds = await getS3Credentials()
+    const bucket = s3Creds?.bucket
+    const region = s3Creds?.region || "us-east-1"
+    const accessKeyId = s3Creds?.accessKey
+    const secretAccessKey = s3Creds?.secretKey
 
     if (!bucket || !region) {
       return NextResponse.json(
-        { success: false, error: "S3 configuration missing (APP_S3_BUCKET_NAME / APP_REGION)" },
+        { success: false, error: "S3 configuration missing" },
         { status: 500 },
       )
     }
@@ -33,7 +30,7 @@ export async function DELETE(request: NextRequest) {
       region,
       credentials:
         accessKeyId && secretAccessKey
-          ? { accessKeyId, secretAccessKey, sessionToken }
+          ? { accessKeyId, secretAccessKey }
           : undefined,
     })
 
